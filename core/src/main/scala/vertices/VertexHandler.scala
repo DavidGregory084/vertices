@@ -29,110 +29,115 @@ sealed abstract class VertexHandler[In: Decoder, Out: Encoder](name: String, ver
 
   def handle: Observable[In] => Observable[Out]
 
-  def decode[A: Decoder](msg: Message[String]): Either[Error, A] =
-    for {
+  def decode[A: Decoder](msg: Message[String]): (Message[String], Either[Error, A]) = {
+    val decoded = for {
       json <- parser.parse(msg.body)
       in <- json.as[A]
     } yield in
 
-  def start: Task[Unit] =
-    register.map { requests =>
-      requests.flatMap {
-        case (msg, RpcRequest(body)) =>
-          // Send the body straight through to the service
-          handle(Observable.pure(body)).headF.map { out =>
-            // Reply to the message directly
-            logger.debug(s"Sending reply: $out")
-            msg.reply(out.asJson.noSpaces)
-          }
+    (msg, decoded)
+  }
 
-        case (msg, ClientStreamRequest(body)) =>
-          val streamAddress = address + "." + UUID.randomUUID()
-
-          // Register a new handler at a random UUID
-          val clientStream = vertx.eventBus
-            .consumer[String](streamAddress)
-            .toObservable(vertx)
-            .map { msg =>
-              (msg, decode[In](msg))
-            }.map {
-              case (msg, Left(error)) =>
-                msg.reply(error.asJson.noSpaces)
-                Left(error)
-              case (_, Right(in)) =>
-                Right(in)
-            }.collect {
-              case (Right(in)) => in
-            }
-
-          // Reply with the client stream address
-          msg.reply(streamAddress)
-
-          // Send the client stream to the service
-          handle(Observable.pure(body) ++ clientStream)
-
-        case (msg, ServerStreamRequest(body, streamAddress)) =>
-          // Acknowledge the request
-          msg.reply(().asJson.noSpaces)
-
-          // Handle the request by streaming back to the client's handler
-          handle(Observable.pure(body)).map { out =>
-            vertx.eventBus.publish(streamAddress, out.asJson.noSpaces)
-          }
-
-        case (msg, BidiStreamRequest(body, outAddress)) =>
-          val inAddress = address + "." + UUID.randomUUID()
-
-          // Register a new handler at a random UUID
-          val clientStream = vertx.eventBus
-            .consumer[String](inAddress)
-            .toObservable(vertx)
-            .map { msg =>
-              (msg, decode[In](msg))
-            }.map {
-              case (msg, Left(error)) =>
-                msg.reply(error.asJson.noSpaces)
-                Left(error)
-              case (_, Right(in)) =>
-                Right(in)
-            }.collect {
-              case (Right(in)) => in
-            }
-
-          // Reply with the client stream address
-          msg.reply(inAddress)
-
-          // Send the client stream to the service and stream back to the client's handler
-          handle(Observable.pure(body) ++ clientStream).map { out =>
-            vertx.eventBus.publish(outAddress, out.asJson.noSpaces)
-          }
-      }.completedL.runAsync(scheduler)
+  def handleDecodingFailure(decoded: (Message[String], Either[Error, Request[In]])): Observable[(Message[String], Request[In])] =
+    decoded match {
+      case (msg, Left(error)) =>
+        logger.debug(s"Error decoding message: ${error}")
+        msg.reply(error)
+        Observable.empty
+      case (msg, Right(in)) =>
+        logger.debug(s"Decoded message: $in")
+        Observable.pure((msg, in))
     }
 
-  def register: Task[Observable[(Message[String], Request[In])]] =
-    Task.eval {
-      val messages = vertx.eventBus
-        .consumer[String](address)
-        .toObservable(vertx)
+  def registerClientStreamHandler(): (String, Observable[In]) = {
+    val clientStreamAddress = address + "." + UUID.randomUUID()
 
-      logger.debug(s"Registered handler at address ${address}")
-
-      messages.map { msg =>
-        logger.debug(s"Received message: ${msg.body}")
-        (msg, decode[Request[In]](msg))
-      }.filter {
+    val clientStream = vertx.eventBus
+      .consumer[String](clientStreamAddress)
+      .toObservable(vertx)
+      .map(decode[In]).flatMap {
         case (msg, Left(error)) =>
-          logger.debug(s"Error decoding message: ${error}")
           msg.reply(error.asJson.noSpaces)
-          false
-        case (_, Right(_)) =>
-          true
-      }.collect {
-        case (msg, Right(in)) =>
-          logger.debug(s"Decoded message: $in")
-          (msg, in)
+          Observable.empty
+        case (_, Right(in)) =>
+          Observable.pure(in)
       }
+
+    (clientStreamAddress, clientStream)
+  }
+
+  def handleRpcRequest(msg: Message[String], body: In): Task[Unit] = {
+    // Send the body straight through to the service
+    handle(Observable.pure(body)).headL.foreachL { out =>
+      // Reply to the message directly
+      logger.debug(s"Sending reply: $out")
+      msg.reply(out.asJson.noSpaces)
     }
+  }
+
+  def handleClientStreamRequest(msg: Message[String], body: In): Task[Unit] = {
+    // Register a new handler at a random UUID
+    val (clientStreamAddress, clientStream) = registerClientStreamHandler()
+
+    // Reply with the client stream address
+    msg.reply(clientStreamAddress)
+
+    // Send the client stream to the service
+    handle(Observable.pure(body) ++ clientStream)
+      .completedL
+  }
+
+  def handleServerStreamRequest(msg: Message[String], body: In, serverStreamAddress: String): Task[Unit] = {
+    // Acknowledge the request
+    msg.reply(().asJson.noSpaces)
+
+    // Handle the request by streaming back to the client's handler
+    handle(Observable.pure(body)).foreachL { out =>
+      vertx.eventBus.publish(serverStreamAddress, out.asJson.noSpaces)
+    }
+  }
+
+  def handleBidiStreamRequest(msg: Message[String], body: In, serverStreamAddress: String): Task[Unit] = {
+    // Register a new handler at a random UUID
+    val (clientStreamAddress, clientStream) = registerClientStreamHandler()
+
+    // Reply with the client stream address
+    msg.reply(clientStreamAddress)
+
+    // Send the client stream to the service and stream back to the client's handler
+    handle(Observable.pure(body) ++ clientStream).foreachL { out =>
+      vertx.eventBus.publish(serverStreamAddress, out.asJson.noSpaces)
+    }
+  }
+
+  def start: Task[Unit] =
+    register.foreachL { messages =>
+      messages
+        .doOnNext(msg =>
+          logger.debug(s"Received message: ${msg.body}"))
+        .map(decode[Request[In]])
+        .flatMap(handleDecodingFailure)
+        .mapTask {
+          case (msg, RpcRequest(body)) =>
+            handleRpcRequest(msg, body)
+          case (msg, ClientStreamRequest(body)) =>
+            handleClientStreamRequest(msg, body)
+          case (msg, ServerStreamRequest(body, serverStreamAddress)) =>
+            handleServerStreamRequest(msg, body, serverStreamAddress)
+          case (msg, BidiStreamRequest(body, serverStreamAddress)) =>
+            handleBidiStreamRequest(msg, body, serverStreamAddress)
+        }.completedL.runAsync(scheduler)
+    }
+
+  def register: Task[Observable[Message[String]]] = Task.eval {
+    val handler = vertx.eventBus
+      .consumer[String](address)
+      .toObservable(vertx)
+
+    logger.debug(s"Registered handler at address ${address}")
+
+    handler
+  }
 }
 
 abstract class RpcHandler[In: Decoder, Out: Encoder](

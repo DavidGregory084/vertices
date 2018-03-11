@@ -18,9 +18,9 @@ class VertexVerticleSpec extends AsyncFlatSpec with Matchers {
     val undeployVerticle =
       (id: String) => Task.handle[Void] { vertx.undeploy(id, _) }.void
     val sendMessageToEcho =
-      Task.handle[Message[String]] { vertx.eventBus.send("vertices.test.echo", """{ "RpcRequest": { "body": 1 } }""", _) }
+      Task.handle[Message[String]] { vertx.eventBus.send("vertices.test.echo", """{"RpcRequest":{"body":1}}""", _) }
     val sendMessageToAddOne =
-      Task.handle[Message[String]] { vertx.eventBus.send("vertices.test.addOne", """{ "RpcRequest": { "body": 1 } }""", _) }
+      Task.handle[Message[String]] { vertx.eventBus.send("vertices.test.addOne", """{"RpcRequest":{"body":1}}""", _) }
     val closeVertx =
       Task.eval { vertx.close() }
 
