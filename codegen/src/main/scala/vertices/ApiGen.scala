@@ -2,15 +2,25 @@ package vertices
 
 import better.files._
 import java.lang.reflect.{ Array => _, _ }
-import io.vertx.core.{ AsyncResult, Handler, Vertx }
+import io.vertx.core.{ AsyncResult, Context, Handler, Vertx }
 import io.vertx.core.eventbus.EventBus
+// import io.vertx.core.datagram.DatagramSocket
 import io.vertx.core.dns.DnsClient
-import io.vertx.core.file.FileSystem
+import io.vertx.core.file.{ /*AsyncFile,*/ FileSystem }
 import io.vertx.core.http.HttpServer
 import io.vertx.core.net.NetServer
+import io.vertx.core.shareddata.SharedData
 import monix.eval.Task
 import org.scalafmt.Scalafmt
 import org.scalafmt.config.ScalafmtConfig
+
+object BinaryTC {
+  def unapply(typ: Type): Option[(Type, Type, Type)] = typ match {
+    case parameterized: ParameterizedType if parameterized.getActualTypeArguments.length == 2 =>
+      Some((parameterized.getRawType, parameterized.getActualTypeArguments()(0), parameterized.getActualTypeArguments()(1)))
+    case _ => None
+  }
+}
 
 object UnaryTC {
   def unapply(typ: Type): Option[(Type, Type)] = typ match {
@@ -22,12 +32,16 @@ object UnaryTC {
 
 class ApiGen(path: java.io.File) {
   val wrappers = Map[Class[_], String](
+    classOf[Context] -> "JavaContext",
     classOf[Vertx] -> "JavaVertx",
+    // classOf[DatagramSocket] -> "JavaDatagramSocket",
     classOf[EventBus] -> "JavaEventBus",
     classOf[DnsClient] -> "JavaDnsClient",
+    // classOf[AsyncFile] -> "JavaAsyncFile",
     classOf[FileSystem] -> "JavaFileSystem",
     classOf[HttpServer] -> "JavaHttpServer",
-    classOf[NetServer] -> "JavaNetServer")
+    classOf[NetServer] -> "JavaNetServer",
+    classOf[SharedData] -> "JavaSharedData")
 
   val ClassByte = classOf[Byte]
   val ClassShort = classOf[Short]
@@ -59,7 +73,7 @@ class ApiGen(path: java.io.File) {
   def toScalaType(t: Type, hasActualParams: Boolean = false): String =
     t match {
       case t: GenericArrayType => s"Array[${toScalaType(t.getGenericComponentType)}]"
-      case t: ParameterizedType => s"${toScalaType(t.getRawType, true)}${t.getActualTypeArguments.map(toScalaType(_)).mkString("[", ", ", "]")}"
+      case t: ParameterizedType => s"""${toScalaType(t.getRawType, true)}${t.getActualTypeArguments.map(toScalaType(_)).mkString("[", ", ", "]")}"""
       case t: WildcardType =>
         t.getUpperBounds.toList.filterNot(_ == classOf[Object]) match {
           case (c: Class[_]) :: Nil => s"_ <: ${c.getName}"
@@ -169,6 +183,8 @@ class ApiGen(path: java.io.File) {
   def collectParams(typ: Type): List[Class[_]] = {
     def go(typ: Type, acc: List[Class[_]]): List[Class[_]] = {
       typ match {
+        case BinaryTC(outer: Class[_], inner1, inner2) =>
+          go(inner1, outer :: acc) ++ go(inner2, List.empty)
         case UnaryTC(outer: Class[_], inner) =>
           go(inner, outer :: acc)
         case clazz: Class[_] =>
@@ -213,7 +229,7 @@ class ApiGen(path: java.io.File) {
 
     val isVoidHandler = handlerTypeParam.map(_.getTypeName == "java.lang.Void").getOrElse(false)
 
-    val returnsWrapper = wrappers.keys.toList.contains(method.getReturnType)
+    val returnsWrapper = wrappers.keys.toList.contains(method.getReturnType) // || handlerTypeParam.map(wrappers.keys.toList.contains(_)).getOrElse(false)
 
     val returnType =
       if (hasHandlerParameter && isVoidHandler)
@@ -306,8 +322,9 @@ class ApiGen(path: java.io.File) {
     val oldName = toScalaType(clazz)
     val originalPkg = clazz.getPackage.getName
 
+    val vertxCore = "io.vertx.core"
+
     def getNewPkg(orig: String) = {
-      val vertxCore = "io.vertx.core"
       if (orig == vertxCore)
         ""
       else
@@ -343,7 +360,7 @@ class ApiGen(path: java.io.File) {
 
     val returnedWrapperImports = allMethods
       .filter(m => wrappers.keys.toList.contains(m.getReturnType))
-      .filterNot(_.getReturnType == clazz)
+      .filterNot(m => m.getReturnType == clazz || m.getReturnType.getPackage.getName == vertxCore || getNewPkg(m.getReturnType.getPackage.getName) == newPkg)
       .map { m =>
         val wrapperPkg = getNewPkg(m.getReturnType.getPackage.getName)
         s"import vertices.$wrapperPkg.${m.getReturnType.getSimpleName}"
