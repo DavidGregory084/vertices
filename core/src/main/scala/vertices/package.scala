@@ -1,6 +1,6 @@
 import scala.util.{ Success, Failure }
 
-import io.vertx.core.{ AsyncResult, Future => VertexFuture, Handler, Vertx }
+import io.vertx.core.{ AsyncResult, Future => VertexFuture, Handler }
 import io.vertx.core.streams.{ Pump, ReadStream }
 import io.vertx.ext.reactivestreams.ReactiveWriteStream
 import monix.execution.Cancelable
@@ -52,7 +52,7 @@ package object vertices {
 
   implicit class VertxReadStreamOps[A](readStream: ReadStream[A]) {
     def toObservable(vertx: Vertx): Observable[A] = {
-      val writeStream = ReactiveWriteStream.writeStream[A](vertx)
+      val writeStream = ReactiveWriteStream.writeStream[A](vertx.unwrap)
       Pump.pump(readStream, writeStream).start()
       readStream.endHandler(_ => writeStream.end())
       Observable.fromReactivePublisher(writeStream)

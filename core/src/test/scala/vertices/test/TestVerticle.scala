@@ -1,7 +1,6 @@
 package vertices
 package test
 
-import io.vertx.core.Vertx
 import monix.eval.Task
 
 class EchoHandler(vertx: Vertx) extends RpcHandler[Int, Int]("echo", vertx, identity)

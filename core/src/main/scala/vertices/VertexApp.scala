@@ -7,9 +7,9 @@ import scala.collection.JavaConverters._
 import cats._, implicits._
 import cats.data.ReaderT
 import com.typesafe.scalalogging.LazyLogging
-import io.vertx.core.Vertx
 import monix.eval.{ Task, TaskApp }
 import org.reflections.Reflections
+import scala.io.StdIn
 
 object VertexApp extends TaskApp with LazyLogging {
   def startVerticles(classes: List[Class[_ <: VertexVerticle]]) =
@@ -17,9 +17,7 @@ object VertexApp extends TaskApp with LazyLogging {
       classes.parTraverse { clazz =>
         logger.debug(s"Deploying new instance of ${clazz.getName}")
         val instance = clazz.newInstance()
-        Task.handle[String] {
-          vertx.deployVerticle(instance, _)
-        }.map { id =>
+        vertx.deployVerticle(instance).map { id =>
           logger.debug(s"Deployed ${clazz.getName} with ID ${id}")
           id
         }
@@ -30,12 +28,14 @@ object VertexApp extends TaskApp with LazyLogging {
     ReaderT[Task, Vertx, Unit] { vertx =>
       deploymentIds.parTraverse { id =>
         logger.debug(s"Undeploying deployment ID ${id}")
-        Task.handle[Void] { vertx.undeploy(id, _) }
+        vertx.undeploy(id)
       }.void
     }
 
-  def closeVertx(vertx: Vertx) =
-    Task.handle[Void] { vertx.close(_) }.void
+  def awaitShutdown: ReaderT[Task, Vertx, Unit] =
+    ReaderT.liftF[Task, Vertx, Unit] {
+      Task.eval(StdIn.readLine("Press enter to shut down"))
+    }
 
   override def run(args: Array[String]): Task[Unit] = {
     val vertx = Vertx.vertx
@@ -50,9 +50,14 @@ object VertexApp extends TaskApp with LazyLogging {
 
     logger.debug(s"""Deploying verticles: ${verticleNames.mkString("[", ", ", "]")}""")
 
-    startVerticles(verticles)
-      .flatMap(stopVerticles)
+    val runApp = for {
+      ids <- startVerticles(verticles)
+      _ <- awaitShutdown
+      _ <- stopVerticles(ids)
+    } yield ()
+
+    runApp
       .run(vertx)
-      .doOnFinish(_ => closeVertx(vertx))
+      .doOnFinish(_ => vertx.close())
   }
 }

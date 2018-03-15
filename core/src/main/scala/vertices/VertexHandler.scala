@@ -9,7 +9,6 @@ import monix.reactive.Observable
 import io.circe.{ CursorOp, Decoder, Encoder, Error, Json, ParsingFailure, DecodingFailure }
 import io.circe.parser
 import io.circe.syntax._
-import io.vertx.core.Vertx
 import io.vertx.core.eventbus.Message
 
 sealed abstract class VertexHandler[In: Decoder, Out: Encoder](name: String, vertx: Vertx) extends LazyLogging {

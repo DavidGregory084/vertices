@@ -3,7 +3,6 @@ package vertices
 import java.util.concurrent.TimeUnit
 
 import com.typesafe.scalalogging.LazyLogging
-import io.vertx.core.Vertx
 import monix.execution.{ Cancelable, ExecutionModel }
 import monix.execution.schedulers.ReferenceScheduler
 

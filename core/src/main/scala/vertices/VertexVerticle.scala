@@ -6,13 +6,13 @@ import scala.collection.JavaConverters._
 
 import cats._, implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.vertx.core.{ AbstractVerticle, Vertx }
+import io.vertx.core.AbstractVerticle
 import io.vertx.core.{ Future => VertxFuture }
 import monix.eval.Task
 import org.reflections.Reflections
 
 abstract class VertexVerticle extends AbstractVerticle with LazyLogging {
-  lazy val scheduler = VertexScheduler(getVertx())
+  lazy val scheduler = VertexScheduler(Vertx(getVertx()))
 
   override def start(started: VertxFuture[Void]): Unit = {
     val services = new Reflections(getClass.getPackage.getName)
@@ -28,7 +28,7 @@ abstract class VertexVerticle extends AbstractVerticle with LazyLogging {
     val registerServiceInstances = services.map { clazz =>
       clazz
         .getDeclaredConstructor(classOf[Vertx])
-        .newInstance(vertx)
+        .newInstance(Vertx(vertx))
     }.parTraverse(_.start)
 
     val ready = startUp.flatMap(_ => registerServiceInstances)

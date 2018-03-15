@@ -1,9 +1,5 @@
 package vertices
 
-import cats._, implicits._
-import io.vertx.core.Vertx
-import io.vertx.core.eventbus.Message
-import monix.eval.Task
 import monix.execution.Scheduler
 import org.scalatest._
 
@@ -14,15 +10,14 @@ class VertexVerticleSpec extends AsyncFlatSpec with Matchers {
     val vertx = Vertx.vertx
 
     val deployVerticle =
-      Task.handle[String] { vertx.deployVerticle("vertices.test.TestVerticle", _) }
+      vertx.deployVerticle("vertices.test.TestVerticle")
     val undeployVerticle =
-      (id: String) => Task.handle[Void] { vertx.undeploy(id, _) }.void
+      (id: String) => vertx.undeploy(id)
     val sendMessageToEcho =
-      Task.handle[Message[String]] { vertx.eventBus.send("vertices.test.echo", """{"RpcRequest":{"body":1}}""", _) }
+      vertx.eventBus.send[String]("vertices.test.echo", """{"RpcRequest":{"body":1}}""")
     val sendMessageToAddOne =
-      Task.handle[Message[String]] { vertx.eventBus.send("vertices.test.addOne", """{"RpcRequest":{"body":1}}""", _) }
-    val closeVertx =
-      Task.eval { vertx.close() }
+      vertx.eventBus.send[String]("vertices.test.addOne", """{"RpcRequest":{"body":1}}""")
+    val closeVertx = vertx.close()
 
     val runTest = for {
       id <- deployVerticle
