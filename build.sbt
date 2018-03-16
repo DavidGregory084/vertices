@@ -70,6 +70,7 @@ lazy val codegen = project.in(file("codegen"))
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "1.0.1",
       "com.geirsson" %% "scalafmt-core" % "1.4.0",
+      "com.google.guava" % "guava" % "24.1-jre",
       "com.github.pathikrit" %% "better-files" % "3.4.0",
       "io.monix" %% "monix" % "3.0.0-M3",
       "io.vertx" % "vertx-core" % "3.5.1",

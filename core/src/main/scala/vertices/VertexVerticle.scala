@@ -27,8 +27,8 @@ abstract class VertexVerticle extends AbstractVerticle with LazyLogging {
 
     val registerServiceInstances = services.map { clazz =>
       clazz
-        .getDeclaredConstructor(classOf[Vertx])
-        .newInstance(Vertx(vertx))
+        .getDeclaredConstructor(classOf[io.vertx.core.Vertx])
+        .newInstance(vertx)
     }.parTraverse(_.start)
 
     val ready = startUp.flatMap(_ => registerServiceInstances)
