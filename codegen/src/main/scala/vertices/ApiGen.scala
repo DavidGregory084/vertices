@@ -139,9 +139,6 @@ class ApiGen(path: java.io.File) {
   // This class, plus any superclasses and interfaces, "all the way up"
   def closure[A](c: Class[A]): List[Class[_]] =
     TypeToken.of(c).getTypes.rawTypes.asScala.toList
-  // (c :: (Option(c.getSuperclass).toList ++ c.getInterfaces.toList).flatMap(closure)).distinct
-  //   .filterNot(_.getName == "java.lang.AutoCloseable") // not available in jdk1.6
-  //   .filterNot(_.getName == "java.lang.Object") // we don't want .equals, etc.
 
   // This is a bit unfortunate but I'm not sure what else to do as interfaces
   // don't have a very helpful API in java.reflect compared to Class[_]

@@ -1,5 +1,7 @@
 import sbt.internal.inc.classpath.ClasspathUtilities
 
+lazy val generateAPI = taskKey[Seq[File]]("Generate Vert.x APIs")
+
 lazy val core = project.in(file("core"))
   .settings(inThisBuild(Seq(
     scalaVersion := "2.12.4",
@@ -37,7 +39,7 @@ lazy val core = project.in(file("core"))
       "org.typelevel" %% "cats-testkit" % "1.0.1" % Test,
     ),
 
-    sourceGenerators.in(Compile) += Def.task {
+    generateAPI.in(Compile) := {
       val cp = fullClasspath.in(codegen, Runtime).value
       // Generate into the main sources folder so that we can actually see the code
       val outDir = scalaSource.in(Compile).value
@@ -49,7 +51,9 @@ lazy val core = project.in(file("core"))
         val generate = clazz.getDeclaredMethod("generate")
         generate.invoke(instance).asInstanceOf[Array[File]].toSet
       }(sources.in(codegen, Compile).value.toSet).toSeq
-    }.taskValue,
+    },
+
+    sourceGenerators.in(Compile) += generateAPI.in(Compile).taskValue,
 
     // Otherwise SBT adds the generated sources to the classpath twice
     managedSources.in(Compile) := Nil
