@@ -1,7 +1,7 @@
 package vertices
 
 import better.files._
-import com.google.common.reflect.{ Invokable, TypeToken }
+import com.google.common.reflect.TypeToken
 import java.lang.reflect.{ Array => _, _ }
 import io.vertx.core.{ AsyncResult, Context, Handler, Vertx, WorkerExecutor }
 import io.vertx.core.eventbus.EventBus
@@ -130,9 +130,7 @@ class ApiGen(path: java.io.File) {
         // There are stupid raw types people still use for some reason
         val tparams = x.getTypeParameters.map(_ => "_")
 
-        if (hasActualParams)
-          name
-        else if (tparams.isEmpty)
+        if (hasActualParams || tparams.isEmpty)
           name
         else
           name + tparams.mkString("[", ", ", "]")
@@ -158,8 +156,11 @@ class ApiGen(path: java.io.File) {
     case UnaryTC(outer, UnaryTC(inner, _)) =>
       outer.getTypeName == "io.vertx.core.Handler" &&
         inner.getTypeName != "io.vertx.core.AsyncResult"
-    case UnaryTC(outer, _) =>
-      outer.getTypeName == "io.vertx.core.Handler"
+    case UnaryTC(outer, inner) =>
+      outer.getTypeName == "io.vertx.core.Handler" &&
+        !inner.getTypeName.startsWith("io.vertx.core.AsyncResult")
+    case cls: Class[_] =>
+      classOf[Handler[_]].isAssignableFrom(cls)
     case _ => false
   }
 
@@ -178,31 +179,36 @@ class ApiGen(path: java.io.File) {
     case _ => ""
   }
 
-  def nonHandlerGenericSignature[A](method: Invokable[A, AnyRef]): String = {
-    method.getParameters.asScala
-      .filterNot(p => isAsyncHandler(p.getType.getType))
-      .map(p => toScalaType(p.getType.getType)).mkString(",")
+  def nonHandlerGenericSignature[A](method: Method): String = {
+    method.getParameters
+      .filterNot(p => isAsyncHandler(p.getParameterizedType))
+      .map(p => toScalaType(p.getType))
+      .mkString(",")
   }
 
-  def shouldKeep[A](token: TypeToken[A], methods: List[Method], method: Method): Boolean = {
+  def shouldKeep[A](methods: List[Method], method: Method): Boolean = {
     val otherMethods = methods.filterNot(_ == method)
     val methodIsHandlerMethod = method.getGenericParameterTypes.exists(isAsyncHandler)
     val sameNameMethods = otherMethods.filter(_.getName == method.getName)
 
-    val conflictingMethodExists = sameNameMethods.exists { other =>
-      val thisMethod = token.method(method)
-      val otherMethod = token.method(other)
-      val otherParamTypes = nonHandlerGenericSignature(thisMethod)
-      val thisParamTypes = nonHandlerGenericSignature(otherMethod)
+    val conflictingMethods = sameNameMethods.filter { other =>
+      val otherParamTypes = nonHandlerGenericSignature(method)
+      val thisParamTypes = nonHandlerGenericSignature(other)
       otherParamTypes == thisParamTypes
     }
 
-    methodIsHandlerMethod || !conflictingMethodExists
+    val conflictingMethodExists = conflictingMethods.nonEmpty
+
+    // TODO: Make this work for handler methods as well so that blocking `close()` on `AsyncFile`
+    // doesn't disappear because it returns `void` which conflicts with the handler version
+    val moreSpecificMethodExists = conflictingMethodExists && conflictingMethods.exists { other =>
+      method.getReturnType.isAssignableFrom(other.getReturnType)
+    }
+
+    methodIsHandlerMethod || !moreSpecificMethodExists
   }
 
   def methods[A](c: Class[A], p: Method => Boolean): List[Method] = {
-    val token = TypeToken.of(c)
-
     val distinctMethods = closure(c).flatMap(_.getDeclaredMethods.toList).distinct
 
     val chosenMethods = distinctMethods.filter(p)
@@ -213,7 +219,7 @@ class ApiGen(path: java.io.File) {
         // any conflict with existing methods after the parameter lists are altered
         methods.foldLeft(List.empty[Method]) {
           case (keep, method) =>
-            if (!shouldKeep(token, methods, method))
+            if (!shouldKeep(methods, method))
               keep
             else
               method :: keep
@@ -221,7 +227,7 @@ class ApiGen(path: java.io.File) {
     }
 
     methodsByName.sortBy { m =>
-      (m.getName, nonHandlerGenericSignature(token.method(m)))
+      (m.getName, nonHandlerGenericSignature(m))
     }
   }
 
@@ -266,8 +272,13 @@ class ApiGen(path: java.io.File) {
   // All types referenced by all methods on A, superclasses, interfaces, etc.
   def imports[A](clazz: Class[A], except: Class[_] => Boolean): List[String] =
     (renameImport(clazz) :: methods(clazz, Function.const(true)).flatMap { m =>
-      m.getReturnType :: collectNestedTypeParams(m.getGenericReturnType) ++
-        m.getParameterTypes.toList ++ m.getGenericParameterTypes.flatMap(collectNestedTypeParams)
+      val token = TypeToken.of(clazz)
+      val method = token.method(m)
+      val returnType = method.getReturnType.getRawType
+      val returnTypeParams = collectNestedTypeParams(method.getReturnType.getType)
+      val paramTypes = method.getParameters.asScala.map(_.getType.getRawType).toList
+      val paramTypeParams = method.getParameters.asScala.map(_.getType.getType).flatMap(collectNestedTypeParams).toList
+      returnType :: returnTypeParams ++ paramTypes ++ paramTypeParams
     }.map { t =>
       if (t.isArray) t.getComponentType else t
     }.filterNot(t => except(t) || t.isPrimitive || t == classOf[Object]).map { c =>
