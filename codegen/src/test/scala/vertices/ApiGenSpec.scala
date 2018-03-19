@@ -3,9 +3,38 @@ package vertices
 import org.scalatest._
 
 import io.vertx.core.{ Handler, Vertx }
+import scala.collection.JavaConverters._
 
 class ApiGenSpec extends FlatSpec with Matchers {
-  val apiGen = new ApiGen(new java.io.File("."))
+  val apiGen = new ApiGen(
+    new java.io.File("."),
+    "io.vertx.core", Array(
+      "io.vertx.core.Context",
+      "io.vertx.core.Vertx",
+      "io.vertx.core.WorkerExecutor",
+      "io.vertx.core.datagram.DatagramSocket",
+      "io.vertx.core.dns.DnsClient",
+      "io.vertx.core.eventbus.EventBus",
+      "io.vertx.core.file.AsyncFile",
+      "io.vertx.core.file.FileSystem",
+      "io.vertx.core.http.HttpClient",
+      "io.vertx.core.http.HttpServer",
+      "io.vertx.core.net.NetClient",
+      "io.vertx.core.net.NetServer",
+      "io.vertx.core.shareddata.SharedData"), Map(
+      "io.vertx.core.Context" -> "JavaContext",
+      "io.vertx.core.Vertx" -> "JavaVertx",
+      "io.vertx.core.WorkerExecutor" -> "JavaWorkerExecutor",
+      "io.vertx.core.datagram.DatagramSocket" -> "JavaDatagramSocket",
+      "io.vertx.core.dns.DnsClient" -> "JavaDnsClient",
+      "io.vertx.core.eventbus.EventBus" -> "JavaEventBus",
+      "io.vertx.core.file.AsyncFile" -> "JavaAsyncFile",
+      "io.vertx.core.file.FileSystem" -> "JavaFileSystem",
+      "io.vertx.core.http.HttpClient" -> "JavaHttpClient",
+      "io.vertx.core.http.HttpServer" -> "JavaHttpServer",
+      "io.vertx.core.net.NetClient" -> "JavaNetClient",
+      "io.vertx.core.net.NetServer" -> "JavaNetServer",
+      "io.vertx.core.shareddata.SharedData" -> "JavaSharedData").asJava)
 
   "ApiGen" should "generate Scala wrappers for Java API definitions" in {
     apiGen.source(classOf[Vertx]) shouldBe s"""

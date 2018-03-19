@@ -3,14 +3,7 @@ package vertices
 import better.files._
 import com.google.common.reflect.TypeToken
 import java.lang.reflect.{ Array => _, _ }
-import io.vertx.core.{ AsyncResult, Context, Handler, Vertx, WorkerExecutor }
-import io.vertx.core.eventbus.EventBus
-import io.vertx.core.datagram.DatagramSocket
-import io.vertx.core.dns.DnsClient
-import io.vertx.core.file.{ AsyncFile, FileSystem }
-import io.vertx.core.http.{ HttpClient, HttpServer }
-import io.vertx.core.net.{ NetClient, NetServer }
-import io.vertx.core.shareddata.SharedData
+import io.vertx.core.{ AsyncResult, Handler }
 import monix.eval.Task
 import org.scalafmt.Scalafmt
 import org.scalafmt.config.ScalafmtConfig
@@ -34,21 +27,12 @@ object UnaryTC {
   }
 }
 
-class ApiGen(path: java.io.File) {
-  val wrappers = Map[Class[_], String](
-    classOf[Context] -> "JavaContext",
-    classOf[Vertx] -> "JavaVertx",
-    classOf[WorkerExecutor] -> "JavaWorkerExecutor",
-    classOf[DatagramSocket] -> "JavaDatagramSocket",
-    classOf[EventBus] -> "JavaEventBus",
-    classOf[DnsClient] -> "JavaDnsClient",
-    classOf[AsyncFile] -> "JavaAsyncFile",
-    classOf[FileSystem] -> "JavaFileSystem",
-    classOf[HttpClient] -> "JavaHttpClient",
-    classOf[HttpServer] -> "JavaHttpServer",
-    classOf[NetClient] -> "JavaNetClient",
-    classOf[NetServer] -> "JavaNetServer",
-    classOf[SharedData] -> "JavaSharedData")
+class ApiGen(path: java.io.File, baseName: String, toGenerate: Array[String], wrapperClassNames: java.util.Map[String, String]) {
+
+  val wrappers: Map[Class[_], String] = wrapperClassNames.asScala.map {
+    case (className, newName) =>
+      Class.forName(className) -> newName
+  }.toMap
 
   val ClassByte = classOf[Byte]
   val ClassShort = classOf[Short]
@@ -332,13 +316,21 @@ class ApiGen(path: java.io.File) {
 
     val receiver = if (isStatic) wrappedName else "unwrap"
 
-    val paramTypes = params
-      .zipWithIndex
-      .map { case (param, i) => s"arg$i: ${toScalaType(param.getType.getType)}" }
-      .mkString(", ")
+    val (paramNamesList, paramTypesList) =
+      params
+        .zipWithIndex
+        .map {
+          case (param, i) =>
+            val isWrapped = wrappers.contains(param.getType.getRawType)
+            val paramName = s"arg$i" + (if (isWrapped) ".unwrap" else "")
+            val paramType = toScalaType(param.getType.getType, rename = !isWrapped)
+            (paramName, s"arg$i: $paramType")
+        }.unzip
+
+    val paramTypes = paramTypesList.mkString(", ")
 
     val paramNames =
-      (params.zipWithIndex.map { case (_, i) => s"arg$i" } ++ (if (hasHandlerParameter) Seq("handler") else Seq.empty))
+      (paramNamesList ++ (if (hasHandlerParameter) Seq("handler") else Seq.empty))
         .mkString(", ")
 
     val typeParameterTypes =
@@ -383,12 +375,21 @@ class ApiGen(path: java.io.File) {
 
     val hasHandlerParameter = method.getGenericParameterTypes.exists(isAsyncHandler)
 
-    val paramTypes = params
-      .map(param => s"${param.getName}: ${toScalaType(param.getParameterizedType)}")
-      .mkString(", ")
+    val (paramNamesList, paramTypesList) =
+      params
+        .zipWithIndex
+        .map {
+          case (param, i) =>
+            val isWrapped = wrappers.contains(param.getType)
+            val paramName = s"arg$i" + (if (isWrapped) ".unwrap" else "")
+            val paramType = toScalaType(param.getType, rename = !isWrapped)
+            (paramName, s"arg$i: $paramType")
+        }.unzip
+
+    val paramTypes = paramTypesList.mkString(", ")
 
     val paramNames =
-      (params.map(_.getName) ++ (if (hasHandlerParameter) Seq("handler") else Seq.empty))
+      (paramNamesList ++ (if (hasHandlerParameter) Seq("handler") else Seq.empty))
         .mkString(", ")
 
     val returnType =
@@ -414,13 +415,11 @@ class ApiGen(path: java.io.File) {
     val oldName = toScalaType(clazz)
     val originalPkg = clazz.getPackage.getName
 
-    val vertxCore = "io.vertx.core"
-
     def getNewPkg(orig: String) = {
-      if (orig == vertxCore)
+      if (orig == baseName)
         ""
       else
-        orig.replaceFirst(vertxCore + ".", "")
+        orig.replaceFirst(s"$baseName.", "")
     }
 
     val newPkg = getNewPkg(originalPkg)
@@ -447,14 +446,15 @@ class ApiGen(path: java.io.File) {
     val noHandlersLeft = (cls: Class[_]) => cls == classOf[Handler[_]] && !hasNonAsyncHandlerMethods
 
     val removeWrapped = (cls: Class[_]) => wrappers.keys.toList.contains(cls) && !allMethods.exists { method =>
-      method.getGenericParameterTypes.flatMap(collectNestedTypeParams).contains(cls)
+      method.getGenericParameterTypes.flatMap(collectNestedTypeParams).contains(cls) &&
+        handlerType(method).map(wrappers.keys.toList.contains(_)).getOrElse(false)
     }
 
     val originalImports = imports(clazz, cls => noHandlersLeft(cls) || removeWrapped(cls))
 
     val returnedWrapperImports = allMethods
       .filter(m => wrappers.keys.toList.contains(m.getReturnType))
-      .filterNot(m => m.getReturnType == clazz || m.getReturnType.getPackage.getName == vertxCore || getNewPkg(m.getReturnType.getPackage.getName) == newPkg)
+      .filterNot(m => m.getReturnType == clazz || m.getReturnType.getPackage.getName == baseName || getNewPkg(m.getReturnType.getPackage.getName) == newPkg)
       .map { m =>
         val wrapperPkg = getNewPkg(m.getReturnType.getPackage.getName)
         s"import vertices.$wrapperPkg.${m.getReturnType.getSimpleName}"
@@ -490,13 +490,11 @@ class ApiGen(path: java.io.File) {
   def generate[A](clazz: Class[A]): java.io.File = {
     println(s"Generating Vert.x API definitions for ${clazz.getName}")
 
-    val vertxCore = "io.vertx.core"
-
     val packageName =
-      if (clazz.getPackage.getName == vertxCore)
+      if (clazz.getPackage.getName == baseName)
         ""
       else
-        clazz.getPackage.getName.replaceFirst(s"$vertxCore.", "")
+        clazz.getPackage.getName.replaceFirst(s"$baseName.", "")
 
     val sourceFileName = clazz.getSimpleName + ".scala"
 
@@ -519,5 +517,5 @@ class ApiGen(path: java.io.File) {
   }
 
   def generate(): Array[java.io.File] =
-    wrappers.keys.toArray.map(generate(_))
+    toGenerate.map(className => generate(Class.forName(className)))
 }
