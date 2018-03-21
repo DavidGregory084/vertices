@@ -180,6 +180,7 @@ lazy val noPublishSettings = Def.settings(
 )
 
 lazy val core = vertxModule("core")
+  .enablePlugins(TutPlugin)
   .settings(commonSettings)
   .settings(codegenSettings)
   .settings(publishSettings)
@@ -201,6 +202,8 @@ lazy val core = vertxModule("core")
     "shareddata.SharedData"
   )).settings(
     name := "vertices-core",
+    scalacOptions.in(Tut) ~= filterConsoleScalacOptions,
+    tutTargetDirectory := file("."),
     libraryDependencies ++= {
       Seq("org.reflections" % "reflections" % "0.9.11") ++
         circeDependencies ++
