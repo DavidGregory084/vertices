@@ -71,7 +71,6 @@ package object vertices {
       val startStream = Task.eval {
         val writeStream = ReactiveWriteStream.writeStream[A](vertx.unwrap)
         Pump.pump(readStream, writeStream).start()
-        readStream.endHandler(_ => writeStream.end())
         writeStream
       }
 
