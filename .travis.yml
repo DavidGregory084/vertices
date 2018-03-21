@@ -1,0 +1,24 @@
+language: scala
+
+scala:
+  - 2.12.5
+
+jdk:
+  - oraclejdk8
+
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION clean coverage generateAPI compile test coverageReport
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+before_cache:
+  - find $HOME/.sbt -name "*.lock" -type f -delete
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
+
+cache:
+  directories:
+  - $HOME/.m2
+  - $HOME/.ivy2/cache
+  - $HOME/.sbt
+  - $HOME/.coursier

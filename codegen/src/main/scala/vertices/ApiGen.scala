@@ -1,3 +1,19 @@
+/*
+ * Copyright 2018 David Gregory and the Vertices project contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package vertices
 
 import better.files._
@@ -446,7 +462,7 @@ class ApiGen(path: java.io.File, baseName: String, toGenerate: Array[String], wr
     val noHandlersLeft = (cls: Class[_]) => cls == classOf[Handler[_]] && !hasNonAsyncHandlerMethods
 
     val removeWrapped = (cls: Class[_]) => wrappers.keys.toList.contains(cls) && !allMethods.exists { method =>
-      method.getGenericParameterTypes.flatMap(collectNestedTypeParams).contains(cls) &&
+      method.getGenericParameterTypes.flatMap(collectNestedTypeParams).contains(cls) ||
         handlerType(method).map(wrappers.keys.toList.contains(_)).getOrElse(false)
     }
 
@@ -464,6 +480,7 @@ class ApiGen(path: java.io.File, baseName: String, toGenerate: Array[String], wr
       (if (hasHandlerMethods) Seq(renameImport(classOf[Task[_]])) else Seq.empty)
 
     val sourceFile = s"""
+    |// $$COVERAGE-OFF$$
     |package vertices
     |${if (newPkg.nonEmpty) "package " + newPkg else ""}
     |
@@ -482,6 +499,7 @@ class ApiGen(path: java.io.File, baseName: String, toGenerate: Array[String], wr
     |
     |$newStaticMethods
     |}
+    |// $$COVERAGE-ON$$
     """.trim.stripMargin
 
     Scalafmt.format(sourceFile, ScalafmtConfig.default120).get

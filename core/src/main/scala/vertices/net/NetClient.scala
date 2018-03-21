@@ -1,9 +1,26 @@
+/*
+ * Copyright 2018 David Gregory and the Vertices project contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// $COVERAGE-OFF$
 package vertices
 package net
 
-import io.vertx.core.net.NetSocket
 import io.vertx.core.net.SocketAddress
 import io.vertx.core.net.{ NetClient => JavaNetClient }
+import io.vertx.core.net.{ NetSocket => JavaNetSocket }
 import java.lang.String
 import monix.eval.Task
 
@@ -16,27 +33,36 @@ case class NetClient(val unwrap: JavaNetClient) extends AnyVal {
     unwrap.close()
 
   def connect(arg0: Int, arg1: String): Task[NetSocket] =
-    Task.handle[NetSocket] { handler =>
-      unwrap.connect(arg0, arg1, handler)
-    }
+    Task
+      .handle[JavaNetSocket] { handler =>
+        unwrap.connect(arg0, arg1, handler)
+      }
+      .map(NetSocket(_))
 
   def connect(arg0: Int, arg1: String, arg2: String): Task[NetSocket] =
-    Task.handle[NetSocket] { handler =>
-      unwrap.connect(arg0, arg1, arg2, handler)
-    }
+    Task
+      .handle[JavaNetSocket] { handler =>
+        unwrap.connect(arg0, arg1, arg2, handler)
+      }
+      .map(NetSocket(_))
 
   def connect(arg0: SocketAddress): Task[NetSocket] =
-    Task.handle[NetSocket] { handler =>
-      unwrap.connect(arg0, handler)
-    }
+    Task
+      .handle[JavaNetSocket] { handler =>
+        unwrap.connect(arg0, handler)
+      }
+      .map(NetSocket(_))
 
   def connect(arg0: SocketAddress, arg1: String): Task[NetSocket] =
-    Task.handle[NetSocket] { handler =>
-      unwrap.connect(arg0, arg1, handler)
-    }
+    Task
+      .handle[JavaNetSocket] { handler =>
+        unwrap.connect(arg0, arg1, handler)
+      }
+      .map(NetSocket(_))
 
   def isMetricsEnabled(): Boolean =
     unwrap.isMetricsEnabled()
 }
 
 object NetClient {}
+// $COVERAGE-ON$

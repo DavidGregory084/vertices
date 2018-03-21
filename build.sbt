@@ -1,5 +1,7 @@
 import sbt.internal.inc.classpath.ClasspathUtilities
 import scala.collection.JavaConverters._
+import scala.xml.{ Elem, Node, NodeSeq }
+import scala.xml.transform.{ RewriteRule, RuleTransformer }
 
 lazy val generateAPI = taskKey[Seq[File]]("Generate Vert.x APIs")
 lazy val baseName = settingKey[String]("Base package name for wrapped Vert.x APIs")
@@ -38,12 +40,7 @@ lazy val codegenSettings = Def.settings(
       val generate = clazz.getDeclaredMethod("generate")
       generate.invoke(instance).asInstanceOf[Array[File]].toSet
     }(sources.in(codegen, Compile).value.toSet).toSeq
-  },
-
-  sourceGenerators.in(Compile) += generateAPI.in(Compile).taskValue,
-
-  // Otherwise SBT adds the generated sources to the classpath twice
-  managedSources.in(Compile) := Nil
+  }
 )
 
 lazy val commonDependencies = Seq(
@@ -63,15 +60,129 @@ lazy val circeDependencies =
     "io.circe" %% "circe-parser"
   ).map(_ % "0.9.1")
 
-lazy val commonSettings = Def.settings(inThisBuild(Seq(
-  scalaVersion := "2.12.4",
-  organization := "io.github.davidgregory084",
-  version := "0.1.0-SNAPSHOT"
-)))
+lazy val commonSettings = Def.settings(
+  inThisBuild(Seq(
+    organization := "io.github.davidgregory084",
+    organizationName := "David Gregory",
+  )),
+
+  releaseCrossBuild := true,
+
+  headerCreate.in(Compile) := {
+    headerCreate.in(Compile).triggeredBy(compile.in(Compile)).value
+  },
+
+  headerLicense := Some(HeaderLicense.ALv2("2018", "David Gregory and the Vertices project contributors")),
+
+  coursierVerbosity := {
+    val travisBuild = isTravisBuild.in(Global).value
+
+    if (travisBuild)
+      0
+    else
+      coursierVerbosity.value
+  },
+
+  scalacOptions ~= {
+    _.filterNot(Set(
+      "-Ywarn-value-discard", // This happens everywhere in Vert.x
+      "-Ywarn-unused:imports", // Life is too short to get this working with code generation
+      "-Ywarn-unused-import" // Same option as above but for 2.11
+    ))
+  }
+)
+
+lazy val publishSettings = Def.settings(
+  releaseCrossBuild := true,
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  publishMavenStyle := true,
+  publishArtifact.in(Test) := false,
+  pomIncludeRepository := Function.const(false),
+  autoAPIMappings := true,
+
+  homepage := Some(url("https://github.com/DavidGregory084/vertices")),
+
+  startYear := Some(2018),
+
+  licenses += ("Apache 2.0", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
+
+  scmInfo := Some(ScmInfo(
+    url("https://github.com/DavidGregory084/schemes"),
+    "scm:git:git@github.com:DavidGregory084/schemes.git"
+  )),
+
+  developers := List(Developer(
+    "DavidGregory084", "David Gregory",
+    "davidgregory084@gmail.com",
+    url("https://twitter.com/DavidGregory084")
+  )),
+
+  publishTo := {
+    val nexus = "https://oss.sonatype.org/"
+    if (isSnapshot.value)
+      Some("snapshots" at nexus + "content/repositories/snapshots")
+    else
+      Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  },
+
+  credentials ++= (for {
+    username <- Option(System.getenv().get("SONATYPE_USERNAME"))
+    password <- Option(System.getenv().get("SONATYPE_PASSWORD"))
+  } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq,
+
+  pomPostProcess := { (node: Node) =>
+    new RuleTransformer(new RewriteRule {
+      override def transform(node: Node): NodeSeq = node match {
+        case elem: Elem =>
+          val isDependency = elem.label == "dependency"
+          val isInTestScope = elem.child.exists(c => c.label == "scope" && c.text == "test")
+
+          if (isDependency && isInTestScope)
+            Nil
+          else
+            elem
+
+        case _ =>
+          node
+      }
+    }).transform(node).head
+  },
+
+  releaseProcess := {
+    import ReleaseTransformations._
+
+    Seq[ReleaseStep](
+      checkSnapshotDependencies,
+      inquireVersions,
+      runClean,
+      runTest,
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      publishArtifacts,
+      setNextVersion,
+      commitNextVersion,
+      ReleaseStep(
+        action = state => state.copy(
+          remainingCommands = Exec("sonatypeReleaseAll", None) +: state.remainingCommands
+        ),
+        enableCrossBuild = true
+      ),
+      pushChanges
+    )
+  }
+)
+
+lazy val noPublishSettings = Def.settings(
+  publish := {},
+  publishLocal := {},
+  publishArtifact := false
+)
 
 lazy val core = vertxModule("core")
   .settings(commonSettings)
   .settings(codegenSettings)
+  .settings(publishSettings)
   .settings(baseName("io.vertx.core"))
   .settings(wrapperNames(
     "Context",
@@ -86,10 +197,10 @@ lazy val core = vertxModule("core")
     "http.HttpServer",
     "net.NetClient",
     "net.NetServer",
+    "net.NetSocket",
     "shareddata.SharedData"
   )).settings(
     name := "vertices-core",
-    scalacOptions ~= { _.filterNot(Set("-Ywarn-value-discard")) },
     libraryDependencies ++= {
       Seq("org.reflections" % "reflections" % "0.9.11") ++
         circeDependencies ++
@@ -100,11 +211,11 @@ lazy val core = vertxModule("core")
 lazy val config = vertxModule("config", core)
   .settings(commonSettings)
   .settings(codegenSettings)
+  .settings(publishSettings)
   .settings(baseName("io.vertx.config"))
   .settings(wrapperNames("ConfigRetriever"))
   .settings(
     name := "vertices-config",
-    scalacOptions ~= { _.filterNot(Set("-Ywarn-value-discard")) },
     libraryDependencies ++= commonDependencies ++ Seq(
       "io.vertx" % "vertx-config" % "3.5.1"
     )
@@ -112,6 +223,7 @@ lazy val config = vertxModule("config", core)
 
 lazy val codegen = project.in(file("codegen"))
   .settings(commonSettings)
+  .settings(noPublishSettings)
   .settings(
     name := "vertices-codegen",
     libraryDependencies ++= Seq(

@@ -37,7 +37,8 @@ class ApiGenSpec extends FlatSpec with Matchers {
       "io.vertx.core.shareddata.SharedData" -> "JavaSharedData").asJava)
 
   "ApiGen" should "generate Scala wrappers for Java API definitions" in {
-    apiGen.source(classOf[Vertx]) shouldBe s"""
+    apiGen.source(classOf[Vertx]) shouldBe """
+      |// $COVERAGE-OFF$
       |package vertices
       |
       |import io.netty.channel.EventLoopGroup
@@ -48,13 +49,24 @@ class ApiGenSpec extends FlatSpec with Matchers {
       |import io.vertx.core.Verticle
       |import io.vertx.core.VertxOptions
       |import io.vertx.core.datagram.DatagramSocketOptions
+      |import io.vertx.core.datagram.{DatagramSocket => JavaDatagramSocket}
       |import io.vertx.core.dns.DnsClientOptions
+      |import io.vertx.core.dns.{DnsClient => JavaDnsClient}
+      |import io.vertx.core.eventbus.{EventBus => JavaEventBus}
+      |import io.vertx.core.file.{FileSystem => JavaFileSystem}
       |import io.vertx.core.http.HttpClientOptions
       |import io.vertx.core.http.HttpServerOptions
+      |import io.vertx.core.http.{HttpClient => JavaHttpClient}
+      |import io.vertx.core.http.{HttpServer => JavaHttpServer}
       |import io.vertx.core.net.NetClientOptions
       |import io.vertx.core.net.NetServerOptions
+      |import io.vertx.core.net.{NetClient => JavaNetClient}
+      |import io.vertx.core.net.{NetServer => JavaNetServer}
+      |import io.vertx.core.shareddata.{SharedData => JavaSharedData}
       |import io.vertx.core.spi.VerticleFactory
+      |import io.vertx.core.{Context => JavaContext}
       |import io.vertx.core.{Vertx => JavaVertx}
+      |import io.vertx.core.{WorkerExecutor => JavaWorkerExecutor}
       |import java.lang.Class
       |import java.lang.Long
       |import java.lang.String
@@ -258,6 +270,7 @@ class ApiGenSpec extends FlatSpec with Matchers {
       |  def currentContext(): Context =
       |    Context(JavaVertx.currentContext())
       |}
+      |// $COVERAGE-ON$
       |
       """.trim.stripMargin
   }

@@ -1,3 +1,20 @@
+/*
+ * Copyright 2018 David Gregory and the Vertices project contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// $COVERAGE-OFF$
 package vertices
 
 import io.netty.channel.EventLoopGroup
@@ -8,13 +25,24 @@ import io.vertx.core.TimeoutStream
 import io.vertx.core.Verticle
 import io.vertx.core.VertxOptions
 import io.vertx.core.datagram.DatagramSocketOptions
+import io.vertx.core.datagram.{ DatagramSocket => JavaDatagramSocket }
 import io.vertx.core.dns.DnsClientOptions
+import io.vertx.core.dns.{ DnsClient => JavaDnsClient }
+import io.vertx.core.eventbus.{ EventBus => JavaEventBus }
+import io.vertx.core.file.{ FileSystem => JavaFileSystem }
 import io.vertx.core.http.HttpClientOptions
 import io.vertx.core.http.HttpServerOptions
+import io.vertx.core.http.{ HttpClient => JavaHttpClient }
+import io.vertx.core.http.{ HttpServer => JavaHttpServer }
 import io.vertx.core.net.NetClientOptions
 import io.vertx.core.net.NetServerOptions
+import io.vertx.core.net.{ NetClient => JavaNetClient }
+import io.vertx.core.net.{ NetServer => JavaNetServer }
+import io.vertx.core.shareddata.{ SharedData => JavaSharedData }
 import io.vertx.core.spi.VerticleFactory
+import io.vertx.core.{ Context => JavaContext }
 import io.vertx.core.{ Vertx => JavaVertx }
+import io.vertx.core.{ WorkerExecutor => JavaWorkerExecutor }
 import java.lang.Class
 import java.lang.Long
 import java.lang.String
@@ -219,3 +247,4 @@ object Vertx {
   def currentContext(): Context =
     Context(JavaVertx.currentContext())
 }
+// $COVERAGE-ON$
