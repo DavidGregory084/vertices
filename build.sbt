@@ -64,6 +64,8 @@ lazy val commonSettings = Def.settings(
   inThisBuild(Seq(
     organization := "io.github.davidgregory084",
     organizationName := "David Gregory",
+    startYear := Some(2018),
+    licenses += ("Apache 2.0", url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
   )),
 
   releaseCrossBuild := true,
@@ -72,7 +74,7 @@ lazy val commonSettings = Def.settings(
     headerCreate.in(Compile).triggeredBy(compile.in(Compile)).value
   },
 
-  headerLicense := Some(HeaderLicense.ALv2("2018", "David Gregory and the Vertices project contributors")),
+  headerLicense.in(Compile) := Some(HeaderLicense.ALv2("2018", "David Gregory and the Vertices project contributors")),
 
   coursierVerbosity := {
     val travisBuild = isTravisBuild.in(Global).value
@@ -101,10 +103,6 @@ lazy val publishSettings = Def.settings(
   autoAPIMappings := true,
 
   homepage := Some(url("https://github.com/DavidGregory084/vertices")),
-
-  startYear := Some(2018),
-
-  licenses += ("Apache 2.0", url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
 
   scmInfo := Some(ScmInfo(
     url("https://github.com/DavidGregory084/schemes"),
@@ -178,6 +176,13 @@ lazy val noPublishSettings = Def.settings(
   publishLocal := {},
   publishArtifact := false
 )
+
+// If you don't specify the root project explicitly sbt-header craps itself
+// trying to figure out the license for the root project
+lazy val vertices = project.in(file("."))
+  .settings(commonSettings)
+  .settings(noPublishSettings)
+  .aggregate(core, config, codegen)
 
 lazy val core = vertxModule("core")
   .enablePlugins(TutPlugin)

@@ -15,12 +15,13 @@ import vertices._
 import monix.execution.Scheduler
 import scala.concurrent.Await
 import scala.concurrent.duration._
-```
 
-```tut:book
 val vertx = Vertx.vertx
 
 implicit val scheduler = VertexScheduler(vertx)
+```
+
+```tut:book
 
 // Create a task which registers a message handler at the address "echo"
 val echoMessagesExuberantly = vertx.eventBus.consumer[String]("echo").

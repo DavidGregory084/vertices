@@ -15,38 +15,36 @@ import vertices._
 import monix.execution.Scheduler
 import scala.concurrent.Await
 import scala.concurrent.duration._
+
+val vertx = Vertx.vertx
+
+implicit val scheduler = VertexScheduler(vertx)
 ```
 
 ```scala
-val vertx = Vertx.vertx
-// vertx: vertices.Vertx = Vertx(io.vertx.core.impl.VertxImpl@e7121f)
-
-implicit val scheduler = VertexScheduler(vertx)
-// scheduler: vertices.VertexScheduler = VertexScheduler(Vertx(io.vertx.core.impl.VertxImpl@e7121f))
-
 // Create a task which registers a message handler at the address "echo"
 val echoMessagesExuberantly = vertx.eventBus.consumer[String]("echo").
   toObservable(vertx).
   // It's very important that it replies enthusiastically
   foreachL(msg => msg.reply(msg.body.toUpperCase))
-// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$308913330
+// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$1147919227
 
 // Kick that off in the background
 echoMessagesExuberantly.runAsync(scheduler)
-// res2: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@393bf80)
+// res4: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@5fe34078)
 
 // Send a message to the handler
 val sendAMessage = vertx.eventBus.
   send[String]("echo", "hello").
   foreachL(msg => println(msg.body))
-// sendAMessage: monix.eval.Task[Unit] = Task.Map$1506698219
+// sendAMessage: monix.eval.Task[Unit] = Task.Map$907630332
 
 Await.result(sendAMessage.runAsync(scheduler), 20.seconds)
 // HELLO
 
 // Tidy up after ourselves - this will unregister the handler and shut down Vert.x
 vertx.close.runAsync(Scheduler.global)
-// res6: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@36e52379)
+// res8: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@435d6a1a)
 ```
 
 ### Conduct
