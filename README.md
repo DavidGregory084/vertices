@@ -27,24 +27,24 @@ val echoMessagesExuberantly = vertx.eventBus.consumer[String]("echo").
   toObservable(vertx).
   // It's very important that it replies enthusiastically
   foreachL(msg => msg.reply(msg.body.toUpperCase))
-// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$1147919227
+// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$164092243
 
 // Kick that off in the background
 echoMessagesExuberantly.runAsync(scheduler)
-// res4: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@5fe34078)
+// res4: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@3d87a80c)
 
 // Send a message to the handler
 val sendAMessage = vertx.eventBus.
   send[String]("echo", "hello").
   foreachL(msg => println(msg.body))
-// sendAMessage: monix.eval.Task[Unit] = Task.Map$907630332
+// sendAMessage: monix.eval.Task[Unit] = Task.Map$1426930445
 
 Await.result(sendAMessage.runAsync(scheduler), 20.seconds)
 // HELLO
 
 // Tidy up after ourselves - this will unregister the handler and shut down Vert.x
 vertx.close.runAsync(Scheduler.global)
-// res8: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@435d6a1a)
+// res8: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@21a7f293)
 ```
 
 ### Conduct

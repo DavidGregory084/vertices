@@ -68,10 +68,16 @@ package object vertices {
 
   implicit class VertxReadStreamOps[A](readStream: ReadStream[A]) {
     def toObservable(vertx: Vertx): Observable[A] = {
-      val writeStream = ReactiveWriteStream.writeStream[A](vertx.unwrap)
-      Pump.pump(readStream, writeStream).start()
-      readStream.endHandler(_ => writeStream.end())
-      Observable.fromReactivePublisher(writeStream)
+      val startStream = Task.eval {
+        val writeStream = ReactiveWriteStream.writeStream[A](vertx.unwrap)
+        Pump.pump(readStream, writeStream).start()
+        readStream.endHandler(_ => writeStream.end())
+        writeStream
+      }
+
+      Observable
+        .fromTask(startStream)
+        .flatMap(Observable.fromReactivePublisher(_))
     }
   }
 }
