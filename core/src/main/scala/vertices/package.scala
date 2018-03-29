@@ -17,12 +17,12 @@
 import scala.util.{ Success, Failure }
 
 import io.vertx.core.{ AsyncResult, Future => VertexFuture, Handler }
-import io.vertx.core.streams.{ Pump, ReadStream }
-import io.vertx.ext.reactivestreams.ReactiveWriteStream
+import io.vertx.core.streams.{ Pump, ReadStream, WriteStream }
+import io.vertx.ext.reactivestreams.{ ReactiveReadStream, ReactiveWriteStream }
 import monix.execution.Cancelable
 import monix.execution.misc.NonFatal
 import monix.eval.{ Callback, Task }
-import monix.reactive.Observable
+import monix.reactive.{ Observable, Observer }
 import shapeless.=:!=
 
 package object vertices {
@@ -77,6 +77,16 @@ package object vertices {
       Observable
         .fromTask(startStream)
         .flatMap(Observable.fromReactivePublisher(_))
+    }
+  }
+
+  implicit class VertxWriteStreamOps[A](writeStream: WriteStream[A]) {
+    def toObserver: Task[Observer[A]] = Task.deferAction { implicit s =>
+      Task.eval {
+        val readStream = ReactiveReadStream.readStream[A]()
+        Pump.pump(readStream, writeStream).start()
+        Observer.fromReactiveSubscriber(readStream, Cancelable.empty)
+      }
     }
   }
 }

@@ -29,22 +29,23 @@ import scala.io.StdIn
 
 object VertexApp extends TaskApp with LazyLogging {
   def startVerticles(classes: List[Class[_ <: VertexVerticle]]) =
-    ReaderT[Task, Vertx, List[String]] { vertx =>
+    ReaderT[Task, Vertx, List[(Class[_ <: VertexVerticle], String)]] { vertx =>
       classes.parTraverse { clazz =>
         logger.debug(s"Deploying new instance of ${clazz.getName}")
         val instance = clazz.newInstance()
         vertx.deployVerticle(instance).map { id =>
           logger.debug(s"Deployed ${clazz.getName} with ID ${id}")
-          id
+          (clazz, id)
         }
       }
     }
 
-  def stopVerticles(deploymentIds: List[String]) =
+  def stopVerticles(deploymentIds: List[(Class[_ <: VertexVerticle], String)]) =
     ReaderT[Task, Vertx, Unit] { vertx =>
-      deploymentIds.parTraverse { id =>
-        logger.debug(s"Undeploying deployment ID ${id}")
-        vertx.undeploy(id)
+      deploymentIds.parTraverse {
+        case (clazz, id) =>
+          logger.debug(s"Undeploying ${clazz.getName} with deployment ID ${id}")
+          vertx.undeploy(id)
       }.void
     }
 

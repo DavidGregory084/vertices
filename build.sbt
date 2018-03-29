@@ -182,7 +182,7 @@ lazy val noPublishSettings = Def.settings(
 lazy val vertices = project.in(file("."))
   .settings(commonSettings)
   .settings(noPublishSettings)
-  .aggregate(core, config, codegen)
+  .aggregate(core, config, scaffold, codegen)
 
 lazy val core = vertxModule("core")
   .enablePlugins(TutPlugin)
@@ -228,6 +228,14 @@ lazy val config = vertxModule("config", core)
       "io.vertx" % "vertx-config" % "3.5.1"
     )
   )
+
+lazy val scaffold = project.in(file("scaffold"))
+  .settings(commonSettings)
+  .settings(publishSettings)
+  .settings(
+    name := "vertices-scaffold",
+    libraryDependencies ++= commonDependencies
+  ).dependsOn(core)
 
 lazy val codegen = project.in(file("codegen"))
   .settings(commonSettings)

@@ -32,7 +32,7 @@ abstract class VertexVerticle extends AbstractVerticle with LazyLogging {
 
   override def start(started: VertxFuture[Void]): Unit = {
     val services = new Reflections(getClass.getPackage.getName)
-      .getSubTypesOf(classOf[VertexHandler[_, _]])
+      .getSubTypesOf(classOf[VertexHandler[_, _, _]])
       .asScala.toList.filterNot { clazz =>
         Modifier.isAbstract(clazz.getModifiers)
       }
