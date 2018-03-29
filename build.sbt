@@ -185,7 +185,6 @@ lazy val vertices = project.in(file("."))
   .aggregate(core, config, scaffold, codegen)
 
 lazy val core = vertxModule("core")
-  .enablePlugins(TutPlugin)
   .settings(commonSettings)
   .settings(codegenSettings)
   .settings(publishSettings)
@@ -207,8 +206,6 @@ lazy val core = vertxModule("core")
     "shareddata.SharedData"
   )).settings(
     name := "vertices-core",
-    scalacOptions.in(Tut) ~= filterConsoleScalacOptions,
-    tutTargetDirectory := file("."),
     libraryDependencies ++= {
       Seq("org.reflections" % "reflections" % "0.9.11") ++
         circeDependencies ++
@@ -230,10 +227,13 @@ lazy val config = vertxModule("config", core)
   )
 
 lazy val scaffold = project.in(file("scaffold"))
+  .enablePlugins(TutPlugin)
   .settings(commonSettings)
   .settings(publishSettings)
   .settings(
     name := "vertices-scaffold",
+    scalacOptions.in(Tut) ~= filterConsoleScalacOptions,
+    tutTargetDirectory := file("."),
     libraryDependencies ++= commonDependencies
   ).dependsOn(core)
 
