@@ -1,24 +1,12 @@
 language: scala
-
-scala:
-  - 2.12.5
-
-jdk:
-  - oraclejdk8
+sudo: required
+dist: trusty
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean headerCheck coverage generateAPI compile tut test coverageReport
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
-
-before_cache:
-  - find $HOME/.sbt -name "*.lock" -type f -delete
-  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
+  - curl -L -o ~/bin/mill https://github.com/lihaoyi/mill/releases/download/0.2.6/0.2.6 && chmod +x ~/bin/mill
+  - export PATH=~/bin/mill:$PATH
+  - mill _.compile
 
 cache:
   directories:
-  - $HOME/.m2
-  - $HOME/.ivy2/cache
-  - $HOME/.sbt
   - $HOME/.coursier
