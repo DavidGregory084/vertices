@@ -141,6 +141,8 @@ object core extends ScalaSettingsModule {
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-core:${vertxVersion()}",
-    ivy"io.monix::monix:3.0.0-RC1"
+    ivy"io.vertx:vertx-reactive-streams:${vertxVersion()}",
+    ivy"io.monix::monix:3.0.0-RC1",
+    ivy"com.chuusai::shapeless:2.3.3"
   )
 }
