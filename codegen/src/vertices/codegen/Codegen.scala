@@ -1,143 +1,130 @@
-// package vertices.codegen
+package vertices.codegen
 
-// import javax.annotation.processing._
-// import javax.lang.model.element._
-// import javax.lang.model.element.Modifier._
-// import javax.lang.model.element.ElementKind._
-// import javax.lang.model.`type`._
-// import javax.lang.model.`type`.TypeKind._
-// import javax.lang.model.util.ElementKindVisitor8
-// import scala.collection.JavaConverters._
+import io.vertx.codegen._
+import io.vertx.codegen.`type`._
+import java.nio.file.{ Files, Path }
+import java.nio.charset.StandardCharsets
+import scala.collection.JavaConverters._
 
-// case class TypeInfo(name: Symbol, params: Vector[TypeInfo] = Vector.empty)
+object Codegen {
 
-// case class ParamInfo(name: Symbol, typ: TypeInfo)
+  def generate(wrappedModels: List[String], outPath: Path, model: ClassModel) = {
+    def newPackage(pkg: String) =
+      pkg.replace("io.vertx", "vertices")
 
-// sealed trait MethodInfo {
-//   def name: Symbol
-//   def typeParams: Vector[TypeInfo]
-//   def params: Vector[ParamInfo]
-//   def returnType: TypeInfo
-//   def isStatic: Boolean
-// }
+    def typeParameters(tparams: List[TypeParamInfo]) = {
+      if (tparams.isEmpty)
+        ""
+      else
+        tparams.map(_.getName).mkString("[", ", ", "]")
+    }
 
-// case class StandardMethodInfo(
-//   name: Symbol,
-//   typeParams: Vector[TypeInfo],
-//   params: Vector[ParamInfo],
-//   returnType: TypeInfo,
-//   isStatic: Boolean
-// ) extends MethodInfo
+    def methodParameters(kind: MethodKind, params: List[ParamInfo]) = {
+      val parms = params.map { param =>
+        param.getName + ": " + param.getType.getSimpleName.replace("<", "[").replace(">", "]")
+      }
 
-// case class AsyncHandlerMethodInfo(
-//   name: Symbol,
-//   typeParams: Vector[TypeInfo],
-//   params: Vector[ParamInfo],
-//   asyncHandlerType: TypeInfo,
-//   returnType: TypeInfo,
-//   isStatic: Boolean
-// ) extends MethodInfo
+      if (kind == MethodKind.FUTURE)
+        parms.init.mkString(", ")
+      else
+        parms.mkString(", ")
+    }
 
-// // object AsyncHandlerMethodInfo {
-// //   def unapply(e: ExecutableElement): Option[(Symbol, Vector[TypeInfo], Vector[ParamInfo], TypeInfo, TypeInfo, Boolean)] =
+    def returnType(kind: MethodKind, params: List[ParamInfo], ret: TypeInfo) = {
+      if (kind == MethodKind.FUTURE) {
+        params.last.getType
+          .asInstanceOf[ParameterizedTypeInfo].getArg(0)
+          .asInstanceOf[ParameterizedTypeInfo].getArg(0)
+          .getSimpleName.replace("<", "[").replace(">", "]")
+      } else {
+        ret.getSimpleName.replace("<", "[").replace(">", "]")
+      }
+    }
 
-// // }
+    def instanceMethods(methods: List[MethodInfo]) = methods.map { method =>
+      val params = method.getParams.asScala.toList
+      val tparams = method.getTypeParams.asScala.toList
+      val retType = returnType(method.getKind, params, method.getReturnType)
+      val tparamString = typeParameters(tparams)
+      val kind = method.getKind
 
-// case class HandlerMethodInfo(
-//   name: Symbol,
-//   typeParams: Vector[TypeInfo],
-//   params: Vector[ParamInfo],
-//   handlerType: TypeInfo,
-//   returnType: TypeInfo,
-//   isStatic: Boolean
-// ) extends MethodInfo
+      if (kind == MethodKind.FUTURE) {
+        s"""
+        |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
+        """
+      } else if (kind == MethodKind.HANDLER) {
+        s"""
+        |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
+        """
+      } else {
+        s"""
+        |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
+        """
+      }
+    }.map(_.trim.stripMargin).mkString(System.lineSeparator * 2)
 
-// case class ClassInfo(
-//   name: Symbol,
-//   typeParams: Vector[TypeInfo] = Vector.empty,
-//   staticMethods: Vector[StandardMethodInfo] = Vector.empty,
-//   staticHandlerMethods: Vector[HandlerMethodInfo]= Vector.empty,
-//   staticAsyncHandlerMethods: Vector[AsyncHandlerMethodInfo] = Vector.empty,
-//   instanceMethods: Vector[StandardMethodInfo] = Vector.empty,
-//   instanceHandlerMethods: Vector[HandlerMethodInfo] = Vector.empty,
-//   instanceAsyncHandlerMethods: Vector[AsyncHandlerMethodInfo] = Vector.empty
-// )
+    def staticMethods(methods: List[MethodInfo]) = methods.map { method =>
+      val params = method.getParams.asScala.toList
+      val tparams = method.getTypeParams.asScala.toList
+      val retType = returnType(method.getKind, params, method.getReturnType)
+      val tparamString = typeParameters(tparams)
+      val kind = method.getKind
 
+      if (kind == MethodKind.FUTURE) {
+        s"""
+        |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
+        """
+      } else if (kind == MethodKind.HANDLER) {
+        s"""
+        |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
+        """
+      } else {
+        s"""
+        |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
+        """
+      }
+    }.map(_.trim.stripMargin).mkString(System.lineSeparator * 2)
 
+    if (!Files.exists(outPath))
+      Files.createDirectories(outPath)
 
-// object Codegen {
-//   def generate(processingEnv: ProcessingEnvironment, roundEnv: RoundEnvironment, element: Element): ClassInfo = {
-//     val Elems = processingEnv.getElementUtils
+    if (!Files.isDirectory(outPath))
+      throw new Exception(s"The output path ${outPath} is not a directory")
 
-//     def getTypeParams[A <: Parameterizable](p: A): Vector[TypeInfo] =
-//       p.getTypeParameters.asScala
-//         .toVector.map { tp =>
-//           TypeInfo(Symbol(tp.toString), Vector.empty)
-//         }
+    val tp = model.getType
+    val pkgNme = tp.getPackageName
+    val tpNme = tp.getSimpleName()
+    val tparams = model.getTypeParams.asScala.toList
+    val anyVal = if (tparams.isEmpty) "extends AnyVal " else " "
+    val tparamString = typeParameters(tparams)
+    val insMethods = model.getInstanceMethods.asScala.toList
+    val statMethods = model.getStaticMethods.asScala.toList
 
-//     def isStatic(e: ExecutableElement): Boolean =
-//       e.getModifiers.asScala.contains(STATIC)
+    val template = {
+      s"""
+      |package ${newPackage(pkgNme)}
+      |
+      |import ${pkgNme}.{ ${tpNme} => Java${tpNme} }
+      |
+      |case class ${tpNme}${tparamString}(val unwrap: Java${tpNme}${tparamString}) ${anyVal}{
+      |${instanceMethods(insMethods)}
+      |}
+      |
+      |object ${tpNme} {
+      |${staticMethods(statMethods)}
+      |}
+      |
+      """.trim.stripMargin
+    }
 
-//     def isAsyncHandler(e: ExecutableElement): Boolean =
-//       e.getParameters.asScala.lastOption.map { param =>
-//         val paramType = param.asType
-//         if (paramType.getKind == DECLARED) {
-//           val declType = paramType.asInstanceOf[DeclaredType]
-//           val elem = declType.asElement
-//           elem.toString == "io.vertx.core.Handler" &&
-//             declType.getTypeArguments.get(0).getKind == DECLARED && {
-//               val firstParam = declType.getTypeArguments.get(0)
-//               val innerDeclType = firstParam.asInstanceOf[DeclaredType]
-//               val innerElem = declType.asElement
-//               println(innerElem)
-//               innerElem.toString == "io.vertx.core.AsyncResult"
-//             }
-//         } else false
-//       }.getOrElse(false)
+    println(template)
 
-//     def isHandler(e: ExecutableElement): Boolean =
-//       !isAsyncHandler(e) && e.getParameters.asScala.lastOption.map { param =>
-//         val paramType = param.asType
-//         if (paramType.getKind == DECLARED) {
-//           val elem = paramType.asInstanceOf[DeclaredType].asElement
-//           elem.toString == "io.vertx.core.Handler"
-//         } else false
-//       }.getOrElse(false)
+    val dest = newPackage(pkgNme).split(".").foldLeft(outPath) {
+      case (path, segment) => path.resolve(segment)
+    }
 
-//     def go(elem: Element, classInfo: ClassInfo): ClassInfo = elem.getKind match {
-//       case INTERFACE =>
-//         elem.getEnclosedElements.asScala.foldLeft(classInfo) {
-//           case (info, e) =>
-//             go(e, info)
-//         }
-//       case METHOD =>
-//         val exec = elem.asInstanceOf[ExecutableElement]
-//         val typeParams = getTypeParams(exec)
-//         val static = isStatic(exec)
-//         val asyncHandler = isAsyncHandler(exec)
-//         val handler = isHandler(exec)
-//         println(exec.getSimpleName -> asyncHandler)
-//         classInfo
-//       case FIELD =>
-//         classInfo
-//       case ENUM =>
-//         classInfo
-//       case other =>
-//         println(other)
-//         classInfo
-//     }
+    val destFile = dest.resolve(tpNme + ".scala")
 
-//     val typeElement = Elems.getTypeElement(element.toString)
-//     val qualifiedName = typeElement.getQualifiedName
-//     val typeParameters = getTypeParams(typeElement)
-
-//     go(element, ClassInfo(Symbol(qualifiedName.toString), typeParameters))
-//   }
-// }
-
-// // class CodegenVisitor(info: ClassInfo) extends ElementKindVisitor8[ClassInfo, Unit](info) {
-// //   var classInfo: ClassInfo = DEFAULT_VALUE
-// //   // override def defaultAction(element: Element, u: Unit) = classInfo
-// //   override def visitExecutableAsMethod(element: ExecutableElement, u: Unit) = ???
-// //   override def visitExecutableAsConstructor(element: ExecutableElement, u: Unit) = ???
-// // }
+    Files.write(destFile, template.getBytes(StandardCharsets.UTF_8))
+  }
+}

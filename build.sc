@@ -68,7 +68,7 @@ trait ScalaSettingsModule extends ScalaModule {
 }
 
 object codegen extends ScalaSettingsModule {
-  def generate(outDir: Path) = T.command {
+  def generate = T.sources {
     val javaSources = for {
       root <- vertxCoreSources()
       if exists(root.path)
@@ -78,7 +78,7 @@ object codegen extends ScalaSettingsModule {
 
     val processorOptions = Seq(
       "-processor", "vertices.codegen.CodegenProcessor",
-      s"""-Acodegen.output.dir="${outDir.toIO.getCanonicalFile}""""
+      s"-Acodegen.output.dir=${T.ctx().dest}"
     )
 
     Lib.compileJava(
@@ -87,6 +87,8 @@ object codegen extends ScalaSettingsModule {
       javacOptions() ++ processorOptions,
       Seq.empty
     )
+
+    Seq(PathRef(T.ctx().dest))
   }
 
   def vertxCoreSources = T.sources {
@@ -133,4 +135,11 @@ object codegen extends ScalaSettingsModule {
 }
 
 object core extends ScalaSettingsModule {
+  override def generatedSources = T.sources {
+    super.generatedSources() ++ codegen.generate()
+  }
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-core:${vertxVersion()}"
+  )
 }
