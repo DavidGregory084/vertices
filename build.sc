@@ -1,8 +1,13 @@
 import mill._, scalalib._, modules.Util
 
 import ammonite.ops._
+import coursier.maven.MavenRepository
 
 trait ScalaSettingsModule extends ScalaModule {
+  override def repositories = {
+    super.repositories :+ MavenRepository("https://oss.sonatype.org/content/repositories/snapshots")
+  }
+
   def scalaVersion = "2.12.4"
   def scalacOptions = Seq(
     // Common options
@@ -27,12 +32,12 @@ trait ScalaSettingsModule extends ScalaModule {
     "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
     // scalaVersion >= 2.12
     "-Xlint:constant",                   // Evaluation of a constant arithmetic expression results in an error.
-    "-Ywarn-unused:implicits",           // Warn if an implicit parameter is unused.
-    "-Ywarn-unused:imports",             // Warn if an import selector is not referenced.
-    "-Ywarn-unused:locals",              // Warn if a local definition is unused.
-    "-Ywarn-unused:params",              // Warn if a value parameter is unused.
-    "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
-    "-Ywarn-unused:privates",            // Warn if a private member is unused.
+    // "-Ywarn-unused:implicits",           // Warn if an implicit parameter is unused.
+    // "-Ywarn-unused:imports",             // Warn if an import selector is not referenced.
+    // "-Ywarn-unused:locals",              // Warn if a local definition is unused.
+    // "-Ywarn-unused:params",              // Warn if a value parameter is unused.
+    // "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
+    // "-Ywarn-unused:privates",            // Warn if a private member is unused.
     "-Ywarn-extra-implicit",             // Warn when more than one implicit parameter section is defined.
     // scalaVersion >= 2.11
     "-Xlint:adapted-args",               // Warn if an argument list is modified to match the receiver.
@@ -63,7 +68,7 @@ trait ScalaSettingsModule extends ScalaModule {
 }
 
 object codegen extends ScalaSettingsModule {
-  def runCodegen(outDir: Path) = T.command {
+  def generate(outDir: Path) = T.command {
     val javaSources = for {
       root <- vertxCoreSources()
       if exists(root.path)
@@ -93,9 +98,9 @@ object codegen extends ScalaSettingsModule {
     Lib.resolveDependencies(
       repositories,
       Lib.depToDependency(_, scalaVersion()),
-      Seq(ivy"io.vertx:vertx-core:${vertxVersion()}"),
+      Seq(ivy"io.vertx:vertx-core:3.5.3;classifier=sources"),
       sources = true
-    ).map(_.find(_.path.last == s"vertx-core-${vertxVersion()}-sources.jar").map(_.path).get)
+    ).map(_.find(_.path.last == s"vertx-core-3.5.3-sources.jar").map(_.path).get)
   }
 
   def nettyVersion = T { "4.1.19.Final" }
@@ -105,7 +110,8 @@ object codegen extends ScalaSettingsModule {
   def log4j2Version = T { "2.8.2" }
 
   def ivyDeps = Agg(
-    ivy"io.vertx:vertx-codegen:${vertxVersion()}",
+    ivy"org.scala-lang.modules::scala-java8-compat:0.9.0",
+    ivy"io.vertx:vertx-codegen:3.6.0-SNAPSHOT", // Needed to create custom code generator
     ivy"io.vertx:vertx-core:${vertxVersion()}",
     ivy"io.vertx:vertx-docgen:0.9.2",
     ivy"io.netty:netty-common:${nettyVersion()}",
