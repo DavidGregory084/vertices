@@ -32,10 +32,11 @@ object Codegen {
 
     def returnType(kind: MethodKind, params: List[ParamInfo], ret: TypeInfo) = {
       if (kind == MethodKind.FUTURE) {
-        params.last.getType
+        val handlerParam = params.last.getType
           .asInstanceOf[ParameterizedTypeInfo].getArg(0)
           .asInstanceOf[ParameterizedTypeInfo].getArg(0)
           .getSimpleName.replace("<", "[").replace(">", "]")
+        s"Task[${handlerParam}]"
       } else {
         ret.getSimpleName.replace("<", "[").replace(">", "]")
       }
@@ -50,14 +51,22 @@ object Codegen {
 
       if (kind == MethodKind.FUTURE) {
         s"""
+        |  // Async handler method
         |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
         """
       } else if (kind == MethodKind.HANDLER) {
         s"""
+        |  // Handler method
+        |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
+        """
+      } else if (method.isFluent) {
+        s"""
+        |  // Fluent method
         |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
         """
       } else {
         s"""
+        |  // Standard method
         |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
         """
       }
@@ -72,14 +81,22 @@ object Codegen {
 
       if (kind == MethodKind.FUTURE) {
         s"""
+        |  // Async handler method
         |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
         """
       } else if (kind == MethodKind.HANDLER) {
         s"""
+        |  // Handler method
+        |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
+        """
+      } else if (method.isFluent) {
+        s"""
+        |  // Fluent method
         |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
         """
       } else {
         s"""
+        |  // Standard method
         |  def ${method.getName}${tparamString}(${methodParameters(kind, params)}): ${retType}
         """
       }
@@ -104,6 +121,7 @@ object Codegen {
       s"""
       |package ${newPackage(pkgNme)}
       |
+      |import monix.eval.Task
       |import ${pkgNme}.{ ${tpNme} => Java${tpNme} }
       |
       |case class ${tpNme}${tparamString}(val unwrap: Java${tpNme}${tparamString}) ${anyVal}{

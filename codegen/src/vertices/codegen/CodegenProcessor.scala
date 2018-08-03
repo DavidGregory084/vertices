@@ -26,7 +26,7 @@ class CodegenProcessor extends AbstractProcessor {
 
     val modelsWithHandlers = models.collect {
       case (k, v) if v.getMethods.asScala.exists { m =>
-        m.getKind == MethodKind.FUTURE || m.getKind == MethodKind.HANDLER
+        m.getKind == MethodKind.FUTURE
       } => v
     }.toList
 
