@@ -149,7 +149,7 @@ trait VertxCodegen extends ScalaSettingsModule {
 
     val processorOptions = Seq(
       "-processor", "vertices.codegen.CodegenProcessor",
-      s"-Acodegen.output.dir=${T.ctx().dest}"
+      s"-Acodegen.output.dir=${sources().head.path.toIO.toString}"
     )
 
     Lib.compileJava(
@@ -162,9 +162,14 @@ trait VertxCodegen extends ScalaSettingsModule {
     Seq(PathRef(T.ctx().dest))
   }
 
-  override def generatedSources = T.sources {
-    super.generatedSources() ++ generate()
+  override def compile = T {
+    generate()
+    super.compile()
   }
+
+  // override def generatedSources = T.sources {
+  //   super.generatedSources() ++ generate()
+  // }
 }
 
 object core extends VertxCodegen {

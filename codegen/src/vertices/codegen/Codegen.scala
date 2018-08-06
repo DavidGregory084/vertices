@@ -278,12 +278,6 @@ object Codegen {
       }.map("import " + _).sorted.mkString(System.lineSeparator)
     }
 
-    if (!Files.exists(outPath))
-      Files.createDirectories(outPath)
-
-    if (!Files.isDirectory(outPath))
-      throw new Exception(s"The output path ${outPath} is not a directory")
-
     val tp = model.getType
     val importedTps = (tp :: model.getImportedTypes.asScala.toList).distinct
     val pkgNme = tp.getPackageName
@@ -291,6 +285,17 @@ object Codegen {
     val tparams = model.getTypeParams.asScala.toList
     val anyVal = if (tparams.isEmpty) "extends AnyVal " else " "
     val tparamString = typeParameters(tparams)
+
+    if (Files.exists(outPath) && !Files.isDirectory(outPath))
+      throw new Exception(s"The output path ${outPath} is not a directory")
+
+    val dest = newPackage(pkgNme).split("\\.").foldLeft(outPath) {
+      case (path, segment) =>
+        path.resolve(segment)
+    }
+
+    if (!Files.exists(dest))
+      Files.createDirectories(dest)
 
     val insMethods = model.getInstanceMethods.asScala.toList
 
@@ -371,10 +376,6 @@ object Codegen {
         """.trim.stripMargin
 
       classTemplate + objectTemplate
-    }
-
-    val dest = newPackage(pkgNme).split(".").foldLeft(outPath) {
-      case (path, segment) => path.resolve(segment)
     }
 
     val destFile = dest.resolve(tpNme + ".scala")
