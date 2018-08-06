@@ -1,6 +1,6 @@
 import scala.util.{ Success, Failure }
 
-import cats.Contravariant
+import cats.{ Contravariant, Functor }
 import io.vertx.core.{ AsyncResult, Future => VertexFuture, Handler }
 import io.vertx.core.streams.{ Pump, ReadStream, WriteStream }
 import io.vertx.ext.reactivestreams.{ ReactiveReadStream, ReactiveWriteStream }
@@ -79,5 +79,30 @@ package object vertices {
   implicit val verticesContravariantForHandler: Contravariant[Handler] = new Contravariant[Handler] {
     def contramap[A, B](handler: Handler[A])(f: B => A): Handler[B] =
       b => handler.handle(f(b))
+  }
+
+  implicit val verticesFunctorForReadStream: Functor[ReadStream] = new Functor[ReadStream] {
+    def map[A, B](readStream: ReadStream[A])(f: A => B): ReadStream[B] = new ReadStream[B] {
+      def endHandler(end: Handler[java.lang.Void]) = {
+        readStream.endHandler(end)
+        this
+      }
+      def exceptionHandler(exc: Handler[Throwable]) = {
+        readStream.exceptionHandler(exc)
+        this
+      }
+      def handler(b: Handler[B]) = {
+        readStream.handler(verticesContravariantForHandler.contramap(b)(f))
+        this
+      }
+      def pause() = {
+        readStream.pause()
+        this
+      }
+      def resume() = {
+        readStream.resume()
+        this
+      }
+    }
   }
 }

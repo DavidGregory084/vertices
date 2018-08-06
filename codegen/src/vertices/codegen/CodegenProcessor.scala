@@ -1,6 +1,5 @@
 package vertices.codegen
 
-import io.vertx.core.{ CompositeFuture, Future }
 import io.vertx.codegen.CodeGen
 import io.vertx.codegen.ClassModel
 import io.vertx.codegen.MethodKind
@@ -15,9 +14,9 @@ import scala.compat.java8.StreamConverters._
 
 class CodegenProcessor extends AbstractProcessor {
   val excludedModels = List(
-    classOf[Future[_]],
-    classOf[CompositeFuture]
-  ).map(_.getName)
+    "io.vertx.core.Future",
+    "io.vertx.core.CompositeFuture"
+  )
 
   override def process(annotations: java.util.Set[_ <: TypeElement], roundEnv: RoundEnvironment): Boolean = {
     val classLoader = getClass.getClassLoader

@@ -69,35 +69,60 @@ trait ScalaSettingsModule extends ScalaModule {
 }
 
 object codegen extends ScalaSettingsModule {
-  def generate = T.sources {
-    val javaSources = for {
-      root <- vertxSources()
-      if exists(root.path)
-      path <- (if (root.path.isDir) ls.rec(root.path) else Seq(root.path))
-      if path.isFile && path.ext == "java"
-    } yield PathRef(path)
+  def nettyVersion = T { "4.1.19.Final" }
+  def jacksonVersion = T { "2.9.5" }
+  def log4jVersion = T { "1.2.17" }
+  def slf4jVersion = T { "1.7.21" }
+  def log4j2Version = T { "2.8.2" }
 
-    val processorOptions = Seq(
-      "-processor", "vertices.codegen.CodegenProcessor",
-      s"-Acodegen.output.dir=${T.ctx().dest}"
-    )
+  def ivyDeps = Agg(
+    ivy"org.scala-lang.modules::scala-java8-compat:0.9.0",
+    ivy"io.vertx:vertx-core:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-htdigest:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-jwt:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-oauth2:${vertxVersion()}",
+    ivy"io.vertx:vertx-web:${vertxVersion()}",
+    ivy"io.vertx:vertx-codegen:3.6.0-SNAPSHOT",
+    ivy"io.vertx:vertx-docgen:0.9.2",
+    ivy"io.netty:netty-common:${nettyVersion()}",
+    ivy"io.netty:netty-buffer:${nettyVersion()}",
+    ivy"io.netty:netty-transport:${nettyVersion()}",
+    ivy"io.netty:netty-handler:${nettyVersion()}",
+    ivy"io.netty:netty-handler-proxy:${nettyVersion()}",
+    ivy"io.netty:netty-codec-http:${nettyVersion()}",
+    ivy"io.netty:netty-codec-http2:${nettyVersion()}",
+    ivy"io.netty:netty-resolver:${nettyVersion()}",
+    ivy"io.netty:netty-resolver-dns:${nettyVersion()}",
+    ivy"io.netty:netty-transport-native-epoll:${nettyVersion()}",
+    ivy"io.netty:netty-transport-native-kqueue:${nettyVersion()}",
+    ivy"org.slf4j:slf4j-api:${slf4jVersion()}",
+    ivy"log4j:log4j:${log4jVersion()}",
+    ivy"org.apache.logging.log4j:log4j-api:${log4j2Version()}",
+    ivy"org.apache.logging.log4j:log4j-core:${log4j2Version()}"
+  )
+}
 
-    Lib.compileJava(
-      javaSources.map(_.path.toIO).toArray,
-      runClasspath().map(_.path.toIO).toArray,
-      javacOptions() ++ processorOptions,
-      Seq.empty
-    )
+trait VertxCodegen extends ScalaSettingsModule {
 
-    Seq(PathRef(T.ctx().dest))
+  def vertxModules: T[Agg[String]]
+
+  def vertxSourceDeps = T {
+    vertxModules().map { id =>
+      ivy"io.vertx:${id}:${vertxVersion()};classifier=sources"
+    }
   }
 
-  def sourceDeps = T {
-    Agg(
-      ivy"io.vertx:vertx-core:${vertxVersion()};classifier=sources",
-      ivy"io.vertx:vertx-config:${vertxVersion()};classifier=sources",
-      ivy"io.vertx:vertx-web:${vertxVersion()};classifier=sources",
-    )
+  def vertxSourceJars = T {
+    Lib.resolveDependencies(
+      repositories,
+      Lib.depToDependency(_, scalaVersion()),
+      vertxSourceDeps().seq,
+      sources = true
+    ).map(_.filter { p =>
+      p.path.last.startsWith("vertx") &&
+      p.path.last.endsWith(s"${vertxVersion()}-sources.jar") &&
+      vertxModules().exists(p.path.last.contains)
+    }.map(_.path))
   }
 
   def vertxSources = T.sources {
@@ -114,66 +139,54 @@ object codegen extends ScalaSettingsModule {
     Seq(PathRef(T.ctx().dest / 'unpacked / 'io))
   }
 
-  def vertxSourceJars = T {
-    Lib.resolveDependencies(
-      repositories,
-      Lib.depToDependency(_, scalaVersion()),
-      sourceDeps().seq,
-      sources = true
-    ).map(_.filter { p =>
-      p.path.last.startsWith("vertx") &&
-      p.path.last.endsWith(s"${vertxVersion()}-sources.jar")
-    }.map(_.path))
+  def generate = T.sources {
+    val javaSources = for {
+      root <- vertxSources()
+      if exists(root.path)
+      path <- (if (root.path.isDir) ls.rec(root.path) else Seq(root.path))
+      if path.isFile && path.ext == "java"
+    } yield PathRef(path)
+
+    val processorOptions = Seq(
+      "-processor", "vertices.codegen.CodegenProcessor",
+      s"-Acodegen.output.dir=${T.ctx().dest}"
+    )
+
+    Lib.compileJava(
+      javaSources.map(_.path.toIO).toArray,
+      codegen.runClasspath().map(_.path.toIO).toArray,
+      javacOptions() ++ processorOptions,
+      Seq.empty
+    )
+
+    Seq(PathRef(T.ctx().dest))
   }
 
-  def nettyVersion = T { "4.1.19.Final" }
-  def jacksonVersion = T { "2.9.5" }
-  def log4jVersion = T { "1.2.17" }
-  def slf4jVersion = T { "1.7.21" }
-  def log4j2Version = T { "2.8.2" }
-
-  def ivyDeps = Agg(
-    ivy"org.scala-lang.modules::scala-java8-compat:0.9.0",
-    ivy"io.vertx:vertx-codegen:3.6.0-SNAPSHOT", // Needed to create custom code generator
-    ivy"io.vertx:vertx-core:${vertxVersion()}",
-    ivy"io.vertx:vertx-config:${vertxVersion()}",
-    ivy"io.vertx:vertx-auth-htdigest:${vertxVersion()}",
-    ivy"io.vertx:vertx-auth-jwt:${vertxVersion()}",
-    ivy"io.vertx:vertx-auth-oauth2:${vertxVersion()}",
-    ivy"io.vertx:vertx-web:${vertxVersion()}",
-    ivy"io.vertx:vertx-docgen:0.9.2",
-    ivy"io.netty:netty-common:${nettyVersion()}",
-    ivy"io.netty:netty-buffer:${nettyVersion()}",
-    ivy"io.netty:netty-transport:${nettyVersion()}",
-    ivy"io.netty:netty-handler:${nettyVersion()}",
-    ivy"io.netty:netty-handler-proxy:${nettyVersion()}",
-    ivy"io.netty:netty-codec-http:${nettyVersion()}",
-    ivy"io.netty:netty-codec-http2:${nettyVersion()}",
-    ivy"io.netty:netty-resolver:${nettyVersion()}",
-    ivy"io.netty:netty-resolver-dns:${nettyVersion()}",
-    ivy"io.netty:netty-transport-native-epoll:${nettyVersion()}",
-    ivy"io.netty:netty-transport-native-kqueue:${nettyVersion()}",
-    ivy"org.slf4j:slf4j-api:${slf4jVersion()}",
-    ivy"log4j:log4j:${log4jVersion()}",
-    ivy"org.apache.logging.log4j:log4j-api:${log4j2Version()}",
-    ivy"org.apache.logging.log4j:log4j-core:${log4j2Version()}",
-  )
+  override def generatedSources = T.sources {
+    super.generatedSources() ++ generate()
+  }
 }
 
-object core extends ScalaSettingsModule {
-  override def generatedSources = T.sources {
-    super.generatedSources() ++ codegen.generate()
-  }
+object core extends VertxCodegen {
+  def vertxModules = Agg("vertx-core")
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-core:${vertxVersion()}",
-    ivy"io.vertx:vertx-config:${vertxVersion()}",
-    ivy"io.vertx:vertx-auth-htdigest:${vertxVersion()}",
-    ivy"io.vertx:vertx-auth-jwt:${vertxVersion()}",
-    ivy"io.vertx:vertx-auth-oauth2:${vertxVersion()}",
-    ivy"io.vertx:vertx-web:${vertxVersion()}",
     ivy"io.vertx:vertx-reactive-streams:${vertxVersion()}",
     ivy"io.monix::monix:3.0.0-RC1",
     ivy"com.chuusai::shapeless:2.3.3"
+  )
+}
+
+object web extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-web")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-auth-htdigest:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-jwt:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-oauth2:${vertxVersion()}",
+    ivy"io.vertx:vertx-web:${vertxVersion()}"
   )
 }

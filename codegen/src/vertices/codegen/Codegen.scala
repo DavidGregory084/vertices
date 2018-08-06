@@ -7,6 +7,10 @@ import java.nio.charset.StandardCharsets
 import scala.collection.JavaConverters._
 
 object Codegen {
+  val excludedMethods = Set(
+    "addInterceptor",
+    "removeInterceptor"
+  )
 
   def generate(wrappedModels: List[String], outPath: Path, model: ClassModel) = {
     def newPackage(pkg: String) =
@@ -97,7 +101,7 @@ object Codegen {
       }
     }
 
-    def conversions(params: List[ParamInfo]) = {
+    def taskConversions(params: List[ParamInfo]) = {
       val handlerParm = params.last.getType
         .asInstanceOf[ParameterizedTypeInfo].getArg(0)
         .asInstanceOf[ParameterizedTypeInfo].getArg(0)
@@ -117,6 +121,24 @@ object Codegen {
       else ""
     }
 
+    def miscConversions(retType: TypeInfo) = {
+      val rawType = if (retType.isInstanceOf[ParameterizedTypeInfo]) retType.getRaw else retType
+
+      if (rawType.getName == ClassModel.VERTX_READ_STREAM) {
+
+        val typeArg = retType.asInstanceOf[ParameterizedTypeInfo].getArg(0)
+        val rawTypeArg = if (typeArg.isInstanceOf[ParameterizedTypeInfo]) typeArg.getRaw else typeArg
+
+        if (wrappedModels.contains(rawTypeArg.getName))
+          s".map(${typeArg.getSimpleName}.apply)"
+        else
+          ""
+
+      } else {
+        ""
+      }
+    }
+
     def paramConversions(p: ParamInfo) = {
       val paramType = p.getType
 
@@ -126,22 +148,7 @@ object Codegen {
         else
           paramType
 
-      def contravariantConversions(argName: String, t: TypeInfo) = {
-        val raw =
-          if (t.isInstanceOf[ParameterizedTypeInfo])
-            t.getRaw
-          else
-            t
-
-        if (wrappedModels.contains(raw.getName))
-          s"${argName}.unwrap"
-        else if (raw.getKind == ClassKind.BOXED_PRIMITIVE)
-          s"${argName}: ${scalaTypeName(t)}"
-        else
-          argName
-      }
-
-      def covariantConversions(argName: String, t: TypeInfo) = {
+      def handlerConversions(argName: String, t: TypeInfo) = {
         val raw =
           if (t.isInstanceOf[ParameterizedTypeInfo])
             t.getRaw
@@ -158,25 +165,14 @@ object Codegen {
 
       if (paramType.getKind == ClassKind.HANDLER) {
         val typeArg = paramType.asInstanceOf[ParameterizedTypeInfo].getArg(0)
-        if (typeArg.getKind == ClassKind.ASYNC_RESULT) {
+        if (typeArg.getKind != ClassKind.ASYNC_RESULT) {
           val argName = "in"
-          val innerTypeArg = typeArg.asInstanceOf[ParameterizedTypeInfo].getArg(0)
-          val handlerType = typeArg.getName.replace("<", "[").replace(">", "]")
-          val conversions = covariantConversions(argName, innerTypeArg)
-          if (conversions == argName)
-            sanitiseName(p.getName)
-          else
-            s"""${sanitiseName(p.getName)}.contramap((out: ${handlerType}) => out.map(${argName} => ${conversions}))"""
-        } else {
-          val argName = "in"
-          val conversions = covariantConversions(argName, typeArg)
+          val conversions = handlerConversions(argName, typeArg)
           if (conversions == argName)
             sanitiseName(p.getName)
           else
             s"""${sanitiseName(p.getName)}.contramap((${argName}: ${scalaParamTypeName(typeArg)}) => ${conversions})"""
         }
-      } else if (wrappedModels.contains(rawParamType.getName)) {
-        contravariantConversions(p.getName, paramType)
       } else {
         sanitiseName(p.getName)
       }
@@ -203,21 +199,21 @@ object Codegen {
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
         |    Task.handle[${handledParam}] { ${params.last.getName} =>
         |      unwrap.${sanitiseName(method.getName)}(${paramNames})
-        |    }${conversions(params)}
+        |    }${taskConversions(params)}
         """
       } else if (wrappedModels.contains(rawReturnType.getName)) {
         val paramNames = params.map(paramConversions).mkString(", ")
         s"""
         |  // Wrapper method
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
-        |    ${scalaTypeName(method.getReturnType)}(unwrap.${sanitiseName(method.getName)}(${paramNames}))
+        |    ${scalaTypeName(method.getReturnType)}(unwrap.${sanitiseName(method.getName)}(${paramNames}))${miscConversions(method.getReturnType)}
         """
       } else {
         val paramNames = params.map(paramConversions).mkString(", ")
         s"""
         |  // Standard method
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
-        |    unwrap.${sanitiseName(method.getName)}(${paramNames})
+        |    unwrap.${sanitiseName(method.getName)}(${paramNames})${miscConversions(method.getReturnType)}
         """
       }
     }.map(_.trim.stripMargin).mkString(System.lineSeparator * 2)
@@ -243,7 +239,7 @@ object Codegen {
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
         |    Task.handle[${handledParam}] { ${params.last.getName} =>
         |      Java${tpNme}.${sanitiseName(method.getName)}(${paramNames})
-        |    }${conversions(params)}
+        |    }${taskConversions(params)}
         """
       } else if (wrappedModels.contains(rawReturnType.getName)) {
         val paramNames = params.map(paramConversions).mkString(", ")
@@ -266,11 +262,13 @@ object Codegen {
       importedTypes.foldLeft(Vector.empty[String]) {
         case (imps, next) =>
           val nm = next.getSimpleName
-          val pkg = next.getName.replace(nm, "")
+          val pkg = Helper.getPackageName(next.getName)
+          val modelNm = model.getType.getSimpleName()
+          val modelPkg = model.getType.getPackageName
           if (wrappedModels.contains(next.getName)) {
-            val wrappedType = pkg + s"{ ${nm} => Java${nm} }"
-            val newType = newPackage(pkg) + next.getSimpleName
-            if (nm != model.getType.getSimpleName() && !pkg.startsWith(model.getType.getPackageName))
+            val wrappedType = pkg + s".{ ${nm} => Java${nm} }"
+            val newType = newPackage(pkg) + "." + next.getSimpleName
+            if (nm != modelNm && pkg != modelPkg)
               imps :+ wrappedType :+ newType
             else
               imps :+ wrappedType
@@ -296,7 +294,9 @@ object Codegen {
 
     val insMethods = model.getInstanceMethods.asScala.toList
 
-    val deduplicatedInsMethods = insMethods.filter { m =>
+    val deduplicatedInsMethods = insMethods.filterNot { m =>
+      excludedMethods.contains(m.getName)
+    }.filter { m =>
       if (m.getKind == MethodKind.FUTURE)
         true
       else !insMethods.exists { om =>
@@ -314,7 +314,9 @@ object Codegen {
 
     val statMethods = model.getStaticMethods.asScala.toList
 
-    val deduplicatedStatMethods = statMethods.filter { m =>
+    val deduplicatedStatMethods = statMethods.filterNot { m =>
+      excludedMethods.contains(m.getName)
+    }.filter { m =>
       if (m.getKind == MethodKind.FUTURE)
         true
       else !statMethods.exists { om =>
@@ -332,6 +334,15 @@ object Codegen {
       }
     }
 
+    val implicits = {
+      val tparams = typeParameters(model.getTypeParams.asScala.toList)
+      val modelNm = model.getType.getSimpleName().capitalize
+      s"""
+      |  implicit def java${modelNm}ToVertices${modelNm}${tparams}(j: Java${modelNm}${tparams}): ${modelNm}${tparams} = apply(j)
+      |  implicit def vertices${modelNm}ToJava${modelNm}${tparams}(v: ${modelNm}${tparams}): Java${modelNm}${tparams} = v.unwrap
+      |""".trim.stripMargin
+    }
+
     val template = {
       val classTemplate =
         s"""
@@ -342,6 +353,8 @@ object Codegen {
         |${imports(importedTps)}
         |import monix.eval.Task
         |
+        |import scala.language.implicitConversions
+        |
         |case class ${tpNme}${tparamString}(val unwrap: Java${tpNme}${tparamString}) ${anyVal}{
         |${instanceMethods(deduplicatedInsMethods)}
         |}
@@ -351,15 +364,13 @@ object Codegen {
       val objectTemplate =
         s"""
         |object ${tpNme} {
+        |${implicits}
         |${staticMethods(tpNme, statMethods)}
         |}
         |
         """.trim.stripMargin
 
-      if (statMethods.nonEmpty)
-        classTemplate + objectTemplate
-      else
-        classTemplate
+      classTemplate + objectTemplate
     }
 
     val dest = newPackage(pkgNme).split(".").foldLeft(outPath) {
