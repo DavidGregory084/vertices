@@ -77,7 +77,7 @@ package object vertices {
   }
 
   implicit val verticesContravariantForHandler: Contravariant[Handler] = new Contravariant[Handler] {
-    def contramap[A, B](handler: Handler[A], f: B => A): Handler[B] =
+    def contramap[A, B](handler: Handler[A])(f: B => A): Handler[B] =
       b => handler.handle(f(b))
   }
 }

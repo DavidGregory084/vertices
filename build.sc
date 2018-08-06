@@ -29,7 +29,8 @@ trait ScalaSettingsModule extends ScalaModule {
     "-Ywarn-nullary-override",           // Warn when non-nullary `def f()' overrides nullary `def f'.
     "-Ywarn-nullary-unit",               // Warn when nullary methods return Unit.
     "-Ywarn-numeric-widen",              // Warn when numerics are widened.
-    "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
+    // "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
+    // ^ too common in Java code
     // scalaVersion >= 2.12
     "-Xlint:constant",                   // Evaluation of a constant arithmetic expression results in an error.
     // "-Ywarn-unused:implicits",           // Warn if an implicit parameter is unused.
@@ -70,7 +71,7 @@ trait ScalaSettingsModule extends ScalaModule {
 object codegen extends ScalaSettingsModule {
   def generate = T.sources {
     val javaSources = for {
-      root <- vertxCoreSources()
+      root <- vertxSources()
       if exists(root.path)
       path <- (if (root.path.isDir) ls.rec(root.path) else Seq(root.path))
       if path.isFile && path.ext == "java"
@@ -91,18 +92,38 @@ object codegen extends ScalaSettingsModule {
     Seq(PathRef(T.ctx().dest))
   }
 
-  def vertxCoreSources = T.sources {
-    Util.unpackZip(vertxCoreSourcesJar())(T.ctx().dest)
+  def sourceDeps = T {
+    Agg(
+      ivy"io.vertx:vertx-core:${vertxVersion()};classifier=sources",
+      ivy"io.vertx:vertx-config:${vertxVersion()};classifier=sources",
+      ivy"io.vertx:vertx-web:${vertxVersion()};classifier=sources",
+    )
+  }
+
+  def vertxSources = T.sources {
+    vertxSourceJars().foreach { path =>
+      Util.unpackZip(path)(T.ctx().dest)
+    }
+
+    rm(T.ctx().dest / 'unpacked / 'io / 'vertx / 'groovy)
+    rm(T.ctx().dest / 'unpacked / 'io / 'vertx / 'reactivex)
+    rm(T.ctx().dest / 'unpacked / 'io / 'vertx / 'rxjava)
+
+    ls.rec(T.ctx().dest / 'unpacked / 'io).filter(p => p.isDir && p.name == "impl").foreach(rm)
+
     Seq(PathRef(T.ctx().dest / 'unpacked / 'io))
   }
 
-  def vertxCoreSourcesJar = T {
+  def vertxSourceJars = T {
     Lib.resolveDependencies(
       repositories,
       Lib.depToDependency(_, scalaVersion()),
-      Seq(ivy"io.vertx:vertx-core:3.5.3;classifier=sources"),
+      sourceDeps().seq,
       sources = true
-    ).map(_.find(_.path.last == s"vertx-core-3.5.3-sources.jar").map(_.path).get)
+    ).map(_.filter { p =>
+      p.path.last.startsWith("vertx") &&
+      p.path.last.endsWith(s"${vertxVersion()}-sources.jar")
+    }.map(_.path))
   }
 
   def nettyVersion = T { "4.1.19.Final" }
@@ -115,6 +136,11 @@ object codegen extends ScalaSettingsModule {
     ivy"org.scala-lang.modules::scala-java8-compat:0.9.0",
     ivy"io.vertx:vertx-codegen:3.6.0-SNAPSHOT", // Needed to create custom code generator
     ivy"io.vertx:vertx-core:${vertxVersion()}",
+    ivy"io.vertx:vertx-config:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-htdigest:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-jwt:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-oauth2:${vertxVersion()}",
+    ivy"io.vertx:vertx-web:${vertxVersion()}",
     ivy"io.vertx:vertx-docgen:0.9.2",
     ivy"io.netty:netty-common:${nettyVersion()}",
     ivy"io.netty:netty-buffer:${nettyVersion()}",
@@ -141,6 +167,11 @@ object core extends ScalaSettingsModule {
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-core:${vertxVersion()}",
+    ivy"io.vertx:vertx-config:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-htdigest:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-jwt:${vertxVersion()}",
+    ivy"io.vertx:vertx-auth-oauth2:${vertxVersion()}",
+    ivy"io.vertx:vertx-web:${vertxVersion()}",
     ivy"io.vertx:vertx-reactive-streams:${vertxVersion()}",
     ivy"io.monix::monix:3.0.0-RC1",
     ivy"com.chuusai::shapeless:2.3.3"
