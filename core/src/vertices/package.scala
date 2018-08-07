@@ -1,7 +1,7 @@
 import scala.util.{ Success, Failure }
 
 import cats.{ Contravariant, Functor }
-import io.vertx.core.{ AsyncResult, Future => VertexFuture, Handler }
+import io.vertx.core.{ AsyncResult, Future => VertxFuture, Handler }
 import io.vertx.core.streams.{ Pump, ReadStream, WriteStream }
 import io.vertx.ext.reactivestreams.{ ReactiveReadStream, ReactiveWriteStream }
 import monix.execution.Cancelable
@@ -34,7 +34,7 @@ package object vertices {
     }
   }
 
-  implicit class VertxVoidFutureOps[A <: Void](future: VertexFuture[A]) {
+  implicit class VertxVoidFutureOps[A <: Void](future: VertxFuture[A]) {
     def completeWith[B](task: Task[B]): Task[Unit] = {
       task.materialize.map {
         case Success(_) => future.complete()
@@ -43,7 +43,7 @@ package object vertices {
     }
   }
 
-  implicit class VertxFutureOps[A](future: VertexFuture[A])(implicit neq: A =:!= Void) {
+  implicit class VertxFutureOps[A](future: VertxFuture[A])(implicit neq: A =:!= Void) {
     def completeWith(task: Task[A]): Task[Unit] = {
       task.materialize.map {
         case Success(result) => future.complete(result)
@@ -79,6 +79,31 @@ package object vertices {
   implicit val verticesContravariantForHandler: Contravariant[Handler] = new Contravariant[Handler] {
     def contramap[A, B](handler: Handler[A])(f: B => A): Handler[B] =
       b => handler.handle(f(b))
+  }
+
+  implicit val verticesContravariantForWriteStream: Contravariant[WriteStream] = new Contravariant[WriteStream] {
+    def contramap[A, B](writeStream: WriteStream[A])(f: B => A): WriteStream[B] = new WriteStream[B] {
+      def drainHandler(end: Handler[Void]): WriteStream[B] = {
+        writeStream.drainHandler(end)
+        this
+      }
+      def end(): Unit =
+        writeStream.end()
+      def exceptionHandler(exc: Handler[Throwable]): WriteStream[B] = {
+        writeStream.exceptionHandler(exc)
+        this
+      }
+      def setWriteQueueMaxSize(size: Int): WriteStream[B] = {
+        writeStream.setWriteQueueMaxSize(size)
+        this
+      }
+      def write(b: B): WriteStream[B] = {
+        writeStream.write(f(b))
+        this
+      }
+      def writeQueueFull(): Boolean =
+        writeStream.writeQueueFull()
+    }
   }
 
   implicit val verticesFunctorForReadStream: Functor[ReadStream] = new Functor[ReadStream] {

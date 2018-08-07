@@ -15,7 +15,9 @@ import scala.compat.java8.StreamConverters._
 class CodegenProcessor extends AbstractProcessor {
   val excludedModels = List(
     "io.vertx.core.Future",
-    "io.vertx.core.CompositeFuture"
+    "io.vertx.core.CompositeFuture",
+    "io.vertx.ext.bridge.BaseBridgeEvent",
+    "io.vertx.ext.web.handler.sockjs.BridgeEvent"
   )
 
   override def process(annotations: java.util.Set[_ <: TypeElement], roundEnv: RoundEnvironment): Boolean = {
@@ -35,7 +37,7 @@ class CodegenProcessor extends AbstractProcessor {
     }.toList
 
     val nonExcludedModels = modelsWithHandlers.filterNot { m =>
-      excludedModels.contains(m.getFqn)
+      m.isDeprecated || !m.isConcrete || excludedModels.contains(m.getFqn)
     }
 
     val outPath = Paths.get(processingEnv.getOptions.get("codegen.output.dir"))

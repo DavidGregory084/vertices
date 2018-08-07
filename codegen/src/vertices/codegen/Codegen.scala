@@ -17,7 +17,7 @@ object Codegen {
       pkg.replace("io.vertx", "vertices")
 
     def sanitiseName(name: String) =
-      name.replace("type", "`type`")
+      name.replaceFirst("^type$", "`type`")
 
     def scalaParamTypeName(typ: TypeInfo) = {
       if (typ.getKind == ClassKind.STRING)
@@ -131,6 +131,16 @@ object Codegen {
 
         if (wrappedModels.contains(rawTypeArg.getName))
           s".map(${typeArg.getSimpleName}.apply)"
+        else
+          ""
+
+      } else if (rawType.getName == ClassModel.VERTX_WRITE_STREAM) {
+
+        val typeArg = retType.asInstanceOf[ParameterizedTypeInfo].getArg(0)
+        val rawTypeArg = if (typeArg.isInstanceOf[ParameterizedTypeInfo]) typeArg.getRaw else typeArg
+
+        if (wrappedModels.contains(rawTypeArg.getName))
+          s".contramap(_.unwrap)"
         else
           ""
 
@@ -300,7 +310,7 @@ object Codegen {
     val insMethods = model.getInstanceMethods.asScala.toList
 
     val deduplicatedInsMethods = insMethods.filterNot { m =>
-      excludedMethods.contains(m.getName)
+      m.isDeprecated || excludedMethods.contains(m.getName)
     }.filter { m =>
       if (m.getKind == MethodKind.FUTURE)
         true
@@ -320,7 +330,7 @@ object Codegen {
     val statMethods = model.getStaticMethods.asScala.toList
 
     val deduplicatedStatMethods = statMethods.filterNot { m =>
-      excludedMethods.contains(m.getName)
+      m.isDeprecated || excludedMethods.contains(m.getName)
     }.filter { m =>
       if (m.getKind == MethodKind.FUTURE)
         true
