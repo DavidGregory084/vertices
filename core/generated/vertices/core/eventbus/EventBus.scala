@@ -18,17 +18,17 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  A Vert.x event-bus is a light-weight distributed messaging system which allows different parts of your application,
-   *  or different applications and services to communicate with each in a loosely coupled way.
-   *  <p>
-   *  An event-bus supports publish-subscribe messaging, point-to-point messaging and request-response messaging.
-   *  <p>
-   *  Message delivery is best-effort and messages can be lost if failure of all or part of the event bus occurs.
-   *  <p>
-   *  Please refer to the documentation for more information on the event bus.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  A Vert.x event-bus is a light-weight distributed messaging system which allows different parts of your application,
+ *  or different applications and services to communicate with each in a loosely coupled way.
+ *  <p>
+ *  An event-bus supports publish-subscribe messaging, point-to-point messaging and request-response messaging.
+ *  <p>
+ *  Message delivery is best-effort and messages can be lost if failure of all or part of the event bus occurs.
+ *  <p>
+ *  Please refer to the documentation for more information on the event bus.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class EventBus(val unwrap: JavaEventBus) extends AnyVal {
   /**
    *  Whether the metrics are enabled for this measured object

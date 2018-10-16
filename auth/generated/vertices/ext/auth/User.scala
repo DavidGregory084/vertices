@@ -13,12 +13,12 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Represents an authenticates User and contains operations to authorise the user.
-   *  <p>
-   *  Please consult the documentation for a detailed explanation.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  Represents an authenticates User and contains operations to authorise the user.
+ *  <p>
+ *  Please consult the documentation for a detailed explanation.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class User(val unwrap: JavaUser) extends AnyVal {
   /**
    *  Is the user authorised to

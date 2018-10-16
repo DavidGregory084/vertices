@@ -19,21 +19,21 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Contains a broad set of operations for manipulating files on the file system.
-   *  <p>
-   *  A (potential) blocking and non blocking version of each operation is provided.
-   *  <p>
-   *  The non blocking versions take a handler which is called when the operation completes or an error occurs.
-   *  <p>
-   *  The blocking versions are named {@code xxxBlocking} and return the results, or throw exceptions directly.
-   *  In many cases, depending on the operating system and file system some of the potentially blocking operations
-   *  can return quickly, which is why we provide them, but it's highly recommended that you test how long they take to
-   *  return in your particular application before using them on an event loop.
-   *  <p>
-   *  Please consult the documentation for more information on file system support.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  Contains a broad set of operations for manipulating files on the file system.
+ *  <p>
+ *  A (potential) blocking and non blocking version of each operation is provided.
+ *  <p>
+ *  The non blocking versions take a handler which is called when the operation completes or an error occurs.
+ *  <p>
+ *  The blocking versions are named {@code xxxBlocking} and return the results, or throw exceptions directly.
+ *  In many cases, depending on the operating system and file system some of the potentially blocking operations
+ *  can return quickly, which is why we provide them, but it's highly recommended that you test how long they take to
+ *  return in your particular application before using them on an event loop.
+ *  <p>
+ *  Please consult the documentation for more information on file system support.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class FileSystem(val unwrap: JavaFileSystem) extends AnyVal {
   /**
    *  Copy a file from the path {@code from} to path {@code to}, asynchronously.

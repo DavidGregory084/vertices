@@ -18,10 +18,10 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An auth handler that provides OAuth2 Authentication support. This handler is suitable for AuthCode flows.
-   * @author Paulo Lopes
-   */
+/**
+ *  An auth handler that provides OAuth2 Authentication support. This handler is suitable for AuthCode flows.
+ * @author Paulo Lopes
+ */
 case class OAuth2AuthHandler(val unwrap: JavaOAuth2AuthHandler) extends AnyVal {
 
   def handle(arg0: RoutingContext): Unit =

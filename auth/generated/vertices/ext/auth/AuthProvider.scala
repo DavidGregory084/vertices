@@ -11,11 +11,11 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   * 
-   *  User-facing interface for authenticating users.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ * 
+ *  User-facing interface for authenticating users.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class AuthProvider(val unwrap: JavaAuthProvider) extends AnyVal {
   /**
    *  Authenticate a user.

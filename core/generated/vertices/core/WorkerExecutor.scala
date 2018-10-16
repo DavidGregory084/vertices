@@ -11,13 +11,13 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An executor for executing blocking code in Vert.x .<p>
-   * 
-   *  It provides the same <code>executeBlocking</code> operation than {@link io.vertx.core.Context} and
-   *  {@link io.vertx.core.Vertx} but on a separate worker pool.<p>
-   * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
-   */
+/**
+ *  An executor for executing blocking code in Vert.x .<p>
+ * 
+ *  It provides the same <code>executeBlocking</code> operation than {@link io.vertx.core.Context} and
+ *  {@link io.vertx.core.Vertx} but on a separate worker pool.<p>
+ * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
+ */
 case class WorkerExecutor(val unwrap: JavaWorkerExecutor) extends AnyVal {
   /**
    *  Whether the metrics are enabled for this measured object

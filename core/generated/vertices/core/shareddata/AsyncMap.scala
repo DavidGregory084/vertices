@@ -12,14 +12,14 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An asynchronous map.
-   *  <p>
-   *  {@link AsyncMap} does <em>not</em> allow {@code null} to be used as a key or value.
-   * @implSpec Implementations of the interface must handle {@link io.vertx.core.shareddata.impl.ClusterSerializable}
-   *  implementing objects.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  An asynchronous map.
+ *  <p>
+ *  {@link AsyncMap} does <em>not</em> allow {@code null} to be used as a key or value.
+ * @implSpec Implementations of the interface must handle {@link io.vertx.core.shareddata.impl.ClusterSerializable}
+ *  implementing objects.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class AsyncMap[K, V](val unwrap: JavaAsyncMap[K, V])  {
   /**
    *  Get a value from the map, asynchronously.

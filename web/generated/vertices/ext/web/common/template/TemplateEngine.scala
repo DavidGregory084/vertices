@@ -12,12 +12,12 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  A template template uses a specific template and the data in a routing context to render a resource into a buffer.
-   *  <p>
-   *  Concrete implementations exist for several well-known template engines.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  A template template uses a specific template and the data in a routing context to render a resource into a buffer.
+ *  <p>
+ *  Concrete implementations exist for several well-known template engines.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class TemplateEngine(val unwrap: JavaTemplateEngine) extends AnyVal {
   /**
    *  Render the template. Template engines that support partials/fragments should extract the template base path from

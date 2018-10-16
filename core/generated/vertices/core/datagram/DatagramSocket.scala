@@ -18,19 +18,19 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  A datagram socket can be used to send {@link DatagramPacket}'s to remote datagram servers
-   *  and receive {@link DatagramPacket}s .
-   *  <p>
-   *  Usually you use a datagram socket to send UDP over the wire. UDP is connection-less which means you are not connected
-   *  to the remote peer in a persistent way. Because of this you have to supply the address and port of the remote peer
-   *  when sending data.
-   *  <p>
-   *  You can send data to ipv4 or ipv6 addresses, which also include multicast addresses.
-   *  <p>
-   *  Please consult the documentation for more information on datagram sockets.
-   * @author <a href="mailto:nmaurer@redhat.com">Norman Maurer</a>
-   */
+/**
+ *  A datagram socket can be used to send {@link DatagramPacket}'s to remote datagram servers
+ *  and receive {@link DatagramPacket}s .
+ *  <p>
+ *  Usually you use a datagram socket to send UDP over the wire. UDP is connection-less which means you are not connected
+ *  to the remote peer in a persistent way. Because of this you have to supply the address and port of the remote peer
+ *  when sending data.
+ *  <p>
+ *  You can send data to ipv4 or ipv6 addresses, which also include multicast addresses.
+ *  <p>
+ *  Please consult the documentation for more information on datagram sockets.
+ * @author <a href="mailto:nmaurer@redhat.com">Norman Maurer</a>
+ */
 case class DatagramSocket(val unwrap: JavaDatagramSocket) extends AnyVal {
   /**
    *  Whether the metrics are enabled for this measured object

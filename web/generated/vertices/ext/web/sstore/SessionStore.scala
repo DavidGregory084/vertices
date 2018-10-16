@@ -15,11 +15,11 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  A session store is used to store sessions for an Vert.x-Web web app
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   * @author <a href="mailto:plopes@redhat.com">Paulo Lopes</a>
-   */
+/**
+ *  A session store is used to store sessions for an Vert.x-Web web app
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ * @author <a href="mailto:plopes@redhat.com">Paulo Lopes</a>
+ */
 case class SessionStore(val unwrap: JavaSessionStore) extends AnyVal {
   /**
    *  Initialize this store.

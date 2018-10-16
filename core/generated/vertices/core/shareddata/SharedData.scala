@@ -14,24 +14,24 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Shared data allows you to share data safely between different parts of your application in a safe way.
-   *  <p>
-   *  Shared data provides:
-   *  <ul>
-   *    <li>synchronous shared maps (local)</li>
-   *    <li>asynchronous maps (local or cluster-wide)</li>
-   *    <li>asynchronous locks (local or cluster-wide)</li>
-   *    <li>asynchronous counters (local or cluster-wide)</li>
-   *  </ul>
-   *  <p>
-   *  <p>
-   *    <strong>WARNING</strong>: In clustered mode, asynchronous maps/locks/counters rely on distributed data structures provided by the cluster manager.
-   *    Beware that the latency relative to asynchronous maps/locks/counters operations can be much higher in clustered than in local mode.
-   *  </p>
-   *  Please see the documentation for more information.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  Shared data allows you to share data safely between different parts of your application in a safe way.
+ *  <p>
+ *  Shared data provides:
+ *  <ul>
+ *    <li>synchronous shared maps (local)</li>
+ *    <li>asynchronous maps (local or cluster-wide)</li>
+ *    <li>asynchronous locks (local or cluster-wide)</li>
+ *    <li>asynchronous counters (local or cluster-wide)</li>
+ *  </ul>
+ *  <p>
+ *  <p>
+ *    <strong>WARNING</strong>: In clustered mode, asynchronous maps/locks/counters rely on distributed data structures provided by the cluster manager.
+ *    Beware that the latency relative to asynchronous maps/locks/counters operations can be much higher in clustered than in local mode.
+ *  </p>
+ *  Please see the documentation for more information.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class SharedData(val unwrap: JavaSharedData) extends AnyVal {
   /**
    *  Get the cluster wide map with the specified name. The map is accessible to all nodes in the cluster and data

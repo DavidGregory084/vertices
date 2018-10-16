@@ -13,15 +13,15 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  A TCP client.
-   *  <p>
-   *  Multiple connections to different servers can be made using the same instance.
-   *  <p>
-   *  This client supports a configurable number of connection attempts and a configurable
-   *  delay between attempts.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  A TCP client.
+ *  <p>
+ *  Multiple connections to different servers can be made using the same instance.
+ *  <p>
+ *  This client supports a configurable number of connection attempts and a configurable
+ *  delay between attempts.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class NetClient(val unwrap: JavaNetClient) extends AnyVal {
   /**
    *  Whether the metrics are enabled for this measured object

@@ -17,17 +17,17 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Represents an HTTP connection.
-   *  <p/>
-   *  HTTP/1.x connection provides an limited implementation, the following methods are implemented:
-   *  <ul>
-   *    <li>{@link #close}</li>
-   *    <li>{@link #closeHandler}</li>
-   *    <li>{@link #exceptionHandler}</li>
-   *  </ul>
-   * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
-   */
+/**
+ *  Represents an HTTP connection.
+ *  <p/>
+ *  HTTP/1.x connection provides an limited implementation, the following methods are implemented:
+ *  <ul>
+ *    <li>{@link #close}</li>
+ *    <li>{@link #closeHandler}</li>
+ *    <li>{@link #exceptionHandler}</li>
+ *  </ul>
+ * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
+ */
 case class HttpConnection(val unwrap: JavaHttpConnection) extends AnyVal {
   /**
    * 

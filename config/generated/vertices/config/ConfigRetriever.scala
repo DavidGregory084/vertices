@@ -17,12 +17,12 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Defines a configuration retriever that read configuration from
-   *  {@link ConfigStore}
-   *  and tracks changes periodically.
-   * @author <a href="http://escoffier.me">Clement Escoffier</a>
-   */
+/**
+ *  Defines a configuration retriever that read configuration from
+ *  {@link ConfigStore}
+ *  and tracks changes periodically.
+ * @author <a href="http://escoffier.me">Clement Escoffier</a>
+ */
 case class ConfigRetriever(val unwrap: JavaConfigRetriever) extends AnyVal {
   /**
    *  Reads the configuration from the different {@link ConfigStore}

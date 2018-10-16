@@ -13,12 +13,12 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Provides a way to asynchronously lookup information from DNS servers.
-   *  <p>
-   *  Please consult the documentation for more information on DNS clients.
-   * @author <a href="mailto:nmaurer@redhat.com">Norman Maurer</a>
-   */
+/**
+ *  Provides a way to asynchronously lookup information from DNS servers.
+ *  <p>
+ *  Please consult the documentation for more information on DNS clients.
+ * @author <a href="mailto:nmaurer@redhat.com">Norman Maurer</a>
+ */
 case class DnsClient(val unwrap: JavaDnsClient) extends AnyVal {
   /**
    *  Try to lookup the A (ipv4) or AAAA (ipv6) record for the given name. The first found will be used.

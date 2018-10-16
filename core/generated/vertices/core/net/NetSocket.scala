@@ -17,18 +17,18 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Represents a socket-like interface to a TCP connection on either the
-   *  client or the server side.
-   *  <p>
-   *  Instances of this class are created on the client side by an {@link NetClient}
-   *  when a connection to a server is made, or on the server side by a {@link NetServer}
-   *  when a server accepts a connection.
-   *  <p>
-   *  It implements both {@link ReadStream} and {@link WriteStream} so it can be used with
-   *  {@link io.vertx.core.streams.Pump} to pump data with flow control.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  Represents a socket-like interface to a TCP connection on either the
+ *  client or the server side.
+ *  <p>
+ *  Instances of this class are created on the client side by an {@link NetClient}
+ *  when a connection to a server is made, or on the server side by a {@link NetServer}
+ *  when a server accepts a connection.
+ *  <p>
+ *  It implements both {@link ReadStream} and {@link WriteStream} so it can be used with
+ *  {@link io.vertx.core.streams.Pump} to pump data with flow control.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class NetSocket(val unwrap: JavaNetSocket) extends AnyVal {
   /**
    *  Same as {@link #end()} but writes some data to the stream before ending.

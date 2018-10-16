@@ -18,10 +18,10 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An auth handler that provides JWT Authentication support.
-   * @author Paulo Lopes
-   */
+/**
+ *  An auth handler that provides JWT Authentication support.
+ * @author Paulo Lopes
+ */
 case class JWTAuthHandler(val unwrap: JavaJWTAuthHandler) extends AnyVal {
 
   def handle(arg0: RoutingContext): Unit =

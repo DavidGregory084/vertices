@@ -17,10 +17,10 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An auth handler that provides HTTP Basic Authentication support.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  An auth handler that provides HTTP Basic Authentication support.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class BasicAuthHandler(val unwrap: JavaBasicAuthHandler) extends AnyVal {
 
   def handle(arg0: RoutingContext): Unit =

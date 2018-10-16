@@ -18,16 +18,16 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An HTTP and WebSockets server.
-   *  <p>
-   *  You receive HTTP requests by providing a {@link #requestHandler}. As requests arrive on the server the handler
-   *  will be called with the requests.
-   *  <p>
-   *  You receive WebSockets by providing a {@link #websocketHandler}. As WebSocket connections arrive on the server, the
-   *  WebSocket is passed to the handler.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  An HTTP and WebSockets server.
+ *  <p>
+ *  You receive HTTP requests by providing a {@link #requestHandler}. As requests arrive on the server the handler
+ *  will be called with the requests.
+ *  <p>
+ *  You receive WebSockets by providing a {@link #websocketHandler}. As WebSocket connections arrive on the server, the
+ *  WebSocket is passed to the handler.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class HttpServer(val unwrap: JavaHttpServer) extends AnyVal {
   /**
    *  Whether the metrics are enabled for this measured object

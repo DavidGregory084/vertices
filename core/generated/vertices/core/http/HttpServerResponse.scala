@@ -19,27 +19,27 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Represents a server-side HTTP response.
-   *  <p>
-   *  An instance of this is created and associated to every instance of
-   *  {@link HttpServerRequest} that.
-   *  <p>
-   *  It allows the developer to control the HTTP response that is sent back to the
-   *  client for a particular HTTP request.
-   *  <p>
-   *  It contains methods that allow HTTP headers and trailers to be set, and for a body to be written out to the response.
-   *  <p>
-   *  It also allows files to be streamed by the kernel directly from disk to the
-   *  outgoing HTTP connection, bypassing user space altogether (where supported by
-   *  the underlying operating system). This is a very efficient way of
-   *  serving files from the server since buffers do not have to be read one by one
-   *  from the file and written to the outgoing socket.
-   *  <p>
-   *  It implements {@link io.vertx.core.streams.WriteStream} so it can be used with
-   *  {@link io.vertx.core.streams.Pump} to pump data with flow control.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  Represents a server-side HTTP response.
+ *  <p>
+ *  An instance of this is created and associated to every instance of
+ *  {@link HttpServerRequest} that.
+ *  <p>
+ *  It allows the developer to control the HTTP response that is sent back to the
+ *  client for a particular HTTP request.
+ *  <p>
+ *  It contains methods that allow HTTP headers and trailers to be set, and for a body to be written out to the response.
+ *  <p>
+ *  It also allows files to be streamed by the kernel directly from disk to the
+ *  outgoing HTTP connection, bypassing user space altogether (where supported by
+ *  the underlying operating system). This is a very efficient way of
+ *  serving files from the server since buffers do not have to be read one by one
+ *  from the file and written to the outgoing socket.
+ *  <p>
+ *  It implements {@link io.vertx.core.streams.WriteStream} so it can be used with
+ *  {@link io.vertx.core.streams.Pump} to pump data with flow control.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class HttpServerResponse(val unwrap: JavaHttpServerResponse) extends AnyVal {
   /**
    *  This will return {@code true} if there are more bytes in the write queue than the value set using {@link

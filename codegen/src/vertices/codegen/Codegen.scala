@@ -211,7 +211,7 @@ object Codegen {
     //   }
     // }
 
-    def javaDocToScalaDoc(doc: Doc): String = {
+    def javaDocToScalaDoc(indent: Int)(doc: Doc): String = {
       val sep = System.lineSeparator
 
       // val docString = new Doc(
@@ -222,13 +222,15 @@ object Codegen {
 
       // println(docString)
 
+      val spaces = " " * indent
+
       doc.toString
         .split("\\r?\\n")
-        .map("   * " + _)
+        .map(spaces  + " * " + _)
         .mkString(
-          "  /**" + sep,
+          spaces + "/**" + sep,
           sep,
-          sep + "   */"
+          sep + spaces + " */"
         )
     }
 
@@ -241,7 +243,7 @@ object Codegen {
       val retType = returnType(kind, params, method.getReturnType)
 
       val scalaDoc = Option(method.getDoc)
-        .map(javaDocToScalaDoc)
+        .map(javaDocToScalaDoc(2))
         .getOrElse("")
 
       val rawReturnType =
@@ -285,7 +287,7 @@ object Codegen {
       val retType = returnType(kind, params, method.getReturnType)
 
       val scalaDoc = Option(method.getDoc)
-        .map(javaDocToScalaDoc)
+        .map(javaDocToScalaDoc(2))
         .getOrElse("")
 
       val rawReturnType =
@@ -411,7 +413,7 @@ object Codegen {
     }
 
     val scalaDoc = Option(model.getDoc)
-      .map(javaDocToScalaDoc)
+      .map(javaDocToScalaDoc(0))
       .getOrElse("")
 
     val template = {

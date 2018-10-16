@@ -11,11 +11,11 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An asynchronous counter that can be used to across the cluster to maintain a consistent count.
-   *  <p>
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  An asynchronous counter that can be used to across the cluster to maintain a consistent count.
+ *  <p>
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class Counter(val unwrap: JavaCounter) extends AnyVal {
   /**
    *  Get the current value of the counter

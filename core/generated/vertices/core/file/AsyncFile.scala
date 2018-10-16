@@ -14,15 +14,15 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Represents a file on the file-system which can be read from, or written to asynchronously.
-   *  <p>
-   *  This class also implements {@link io.vertx.core.streams.ReadStream} and
-   *  {@link io.vertx.core.streams.WriteStream}. This allows the data to be pumped to and from
-   *  other streams, e.g. an {@link io.vertx.core.http.HttpClientRequest} instance,
-   *  using the {@link io.vertx.core.streams.Pump} class
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  Represents a file on the file-system which can be read from, or written to asynchronously.
+ *  <p>
+ *  This class also implements {@link io.vertx.core.streams.ReadStream} and
+ *  {@link io.vertx.core.streams.WriteStream}. This allows the data to be pumped to and from
+ *  other streams, e.g. an {@link io.vertx.core.http.HttpClientRequest} instance,
+ *  using the {@link io.vertx.core.streams.Pump} class
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class AsyncFile(val unwrap: JavaAsyncFile) extends AnyVal {
   /**
    *  Same as {@link #end()} but writes some data to the stream before ending.

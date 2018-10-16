@@ -13,16 +13,16 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Represents a message that is received from the event bus in a handler.
-   *  <p>
-   *  Messages have a {@link #body}, which can be null, and also {@link #headers}, which can be empty.
-   *  <p>
-   *  If the message was sent specifying a reply handler, it can be replied to using {@link #reply}.
-   *  <p>
-   *  If you want to notify the sender that processing failed, then {@link #fail} can be called.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  Represents a message that is received from the event bus in a handler.
+ *  <p>
+ *  Messages have a {@link #body}, which can be null, and also {@link #headers}, which can be empty.
+ *  <p>
+ *  If the message was sent specifying a reply handler, it can be replied to using {@link #reply}.
+ *  <p>
+ *  If you want to notify the sender that processing failed, then {@link #fail} can be called.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class Message[T](val unwrap: JavaMessage[T])  {
   /**
    *  The address the message was sent to

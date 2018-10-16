@@ -49,30 +49,30 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  The entry point into the Vert.x Core API.
-   *  <p>
-   *  You use an instance of this class for functionality including:
-   *  <ul>
-   *    <li>Creating TCP clients and servers</li>
-   *    <li>Creating HTTP clients and servers</li>
-   *    <li>Creating DNS clients</li>
-   *    <li>Creating Datagram sockets</li>
-   *    <li>Setting and cancelling periodic and one-shot timers</li>
-   *    <li>Getting a reference to the event bus API</li>
-   *    <li>Getting a reference to the file system API</li>
-   *    <li>Getting a reference to the shared data API</li>
-   *    <li>Deploying and undeploying verticles</li>
-   *  </ul>
-   *  <p>
-   *  Most functionality in Vert.x core is fairly low level.
-   *  <p>
-   *  To create an instance of this class you can use the static factory methods: {@link #vertx},
-   *  {@link #vertx(io.vertx.core.VertxOptions)} and {@link #clusteredVertx(io.vertx.core.VertxOptions, Handler)}.
-   *  <p>
-   *  Please see the user manual for more detailed usage information.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  The entry point into the Vert.x Core API.
+ *  <p>
+ *  You use an instance of this class for functionality including:
+ *  <ul>
+ *    <li>Creating TCP clients and servers</li>
+ *    <li>Creating HTTP clients and servers</li>
+ *    <li>Creating DNS clients</li>
+ *    <li>Creating Datagram sockets</li>
+ *    <li>Setting and cancelling periodic and one-shot timers</li>
+ *    <li>Getting a reference to the event bus API</li>
+ *    <li>Getting a reference to the file system API</li>
+ *    <li>Getting a reference to the shared data API</li>
+ *    <li>Deploying and undeploying verticles</li>
+ *  </ul>
+ *  <p>
+ *  Most functionality in Vert.x core is fairly low level.
+ *  <p>
+ *  To create an instance of this class you can use the static factory methods: {@link #vertx},
+ *  {@link #vertx(io.vertx.core.VertxOptions)} and {@link #clusteredVertx(io.vertx.core.VertxOptions, Handler)}.
+ *  <p>
+ *  Please see the user manual for more detailed usage information.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class Vertx(val unwrap: JavaVertx) extends AnyVal {
   /**
    *  Whether the metrics are enabled for this measured object

@@ -17,10 +17,10 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An auth handler that's used to handle auth by redirecting user to a custom login page.
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  An auth handler that's used to handle auth by redirecting user to a custom login page.
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class RedirectAuthHandler(val unwrap: JavaRedirectAuthHandler) extends AnyVal {
 
   def handle(arg0: RoutingContext): Unit =

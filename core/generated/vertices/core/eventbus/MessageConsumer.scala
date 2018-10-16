@@ -14,18 +14,18 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An event bus consumer object representing a stream of message to an {@link EventBus} address that can
-   *  be read from.
-   *  <p>
-   *  The {@link EventBus#consumer(String)} or {@link EventBus#localConsumer(String)}
-   *  creates a new consumer, the returned consumer is not yet registered against the event bus. Registration
-   *  is effective after the {@link #handler(io.vertx.core.Handler)} method is invoked.<p>
-   * 
-   *  The consumer is unregistered from the event bus using the {@link #unregister()} method or by calling the
-   *  {@link #handler(io.vertx.core.Handler)} with a null value..
-   * @author <a href="mailto:nscavell@redhat.com">Nick Scavelli</a>
-   */
+/**
+ *  An event bus consumer object representing a stream of message to an {@link EventBus} address that can
+ *  be read from.
+ *  <p>
+ *  The {@link EventBus#consumer(String)} or {@link EventBus#localConsumer(String)}
+ *  creates a new consumer, the returned consumer is not yet registered against the event bus. Registration
+ *  is effective after the {@link #handler(io.vertx.core.Handler)} method is invoked.<p>
+ * 
+ *  The consumer is unregistered from the event bus using the {@link #unregister()} method or by calling the
+ *  {@link #handler(io.vertx.core.Handler)} with a null value..
+ * @author <a href="mailto:nscavell@redhat.com">Nick Scavelli</a>
+ */
 case class MessageConsumer[T](val unwrap: JavaMessageConsumer[T])  {
 
   def exceptionHandler(handler: Handler[Throwable]): MessageConsumer[T] =

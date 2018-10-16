@@ -15,10 +15,10 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  Represents a TCP server
-   * @author <a href="http://tfox.org">Tim Fox</a>
-   */
+/**
+ *  Represents a TCP server
+ * @author <a href="http://tfox.org">Tim Fox</a>
+ */
 case class NetServer(val unwrap: JavaNetServer) extends AnyVal {
   /**
    *  Whether the metrics are enabled for this measured object

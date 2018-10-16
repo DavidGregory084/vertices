@@ -16,10 +16,10 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
-  /**
-   *  An auth handler that chains to a sequence of handlers.
-   * @author <a href="mailto:plopes@redhat.com">Paulo Lopes</a>
-   */
+/**
+ *  An auth handler that chains to a sequence of handlers.
+ * @author <a href="mailto:plopes@redhat.com">Paulo Lopes</a>
+ */
 case class ChainAuthHandler(val unwrap: JavaChainAuthHandler) extends AnyVal {
 
   def handle(arg0: RoutingContext): Unit =
