@@ -18,66 +18,130 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
+  /**
+   *  An HTTP and WebSockets server.
+   *  <p>
+   *  You receive HTTP requests by providing a {@link #requestHandler}. As requests arrive on the server the handler
+   *  will be called with the requests.
+   *  <p>
+   *  You receive WebSockets by providing a {@link #websocketHandler}. As WebSocket connections arrive on the server, the
+   *  WebSocket is passed to the handler.
+   * @author <a href="http://tfox.org">Tim Fox</a>
+   */
 case class HttpServer(val unwrap: JavaHttpServer) extends AnyVal {
-  // Standard method
+  /**
+   *  Whether the metrics are enabled for this measured object
+   * @implSpec  The default implementation returns {@code false}
+   * @return {@code true} if metrics are enabled
+   */
   def isMetricsEnabled(): Boolean =
     unwrap.isMetricsEnabled()
 
-  // Standard method
+  /**
+   *  Return the request stream for the server. As HTTP requests are received by the server,
+   *  instances of {@link HttpServerRequest} will be created and passed to the stream {@link io.vertx.core.streams.ReadStream#handler(io.vertx.core.Handler)}.
+   * @return the request stream
+   */
   def requestStream(): ReadStream[HttpServerRequest] =
     unwrap.requestStream()
 
-  // Wrapper method
+  /**
+   *  Set the request handler for the server to {@code requestHandler}. As HTTP requests are received by the server,
+   *  instances of {@link HttpServerRequest} will be created and passed to this handler.
+   * @return a reference to this, so the API can be used fluently
+   */
   def requestHandler(handler: Handler[HttpServerRequest]): HttpServer =
     HttpServer(unwrap.requestHandler(handler))
 
-  // Wrapper method
+  /**
+   *  Set a connection handler for the server.
+   * @return a reference to this, so the API can be used fluently
+   */
   def connectionHandler(handler: Handler[HttpConnection]): HttpServer =
     HttpServer(unwrap.connectionHandler(handler.contramap((in: JavaHttpConnection) => HttpConnection(in))))
 
-  // Wrapper method
+  /**
+   *  Set an exception handler called for socket errors happening before the HTTP connection
+   *  is established, e.g during the TLS handshake.
+   * @param handler the handler to set
+   * @return a reference to this, so the API can be used fluently
+   */
   def exceptionHandler(handler: Handler[Throwable]): HttpServer =
     HttpServer(unwrap.exceptionHandler(handler))
 
-  // Standard method
+  /**
+   *  Return the websocket stream for the server. If a websocket connect handshake is successful a
+   *  new {@link ServerWebSocket} instance will be created and passed to the stream {@link io.vertx.core.streams.ReadStream#handler(io.vertx.core.Handler)}.
+   * @return the websocket stream
+   */
   def websocketStream(): ReadStream[ServerWebSocket] =
     unwrap.websocketStream()
 
-  // Wrapper method
+  /**
+   *  Set the websocket handler for the server to {@code wsHandler}. If a websocket connect handshake is successful a
+   *  new {@link ServerWebSocket} instance will be created and passed to the handler.
+   * @return a reference to this, so the API can be used fluently
+   */
   def websocketHandler(handler: Handler[ServerWebSocket]): HttpServer =
     HttpServer(unwrap.websocketHandler(handler))
 
-  // Async handler method
+  /**
+   *  Like {@link #listen(int, String)} but supplying a handler that will be called when the server is actually
+   *  listening (or has failed).
+   * @param port  the port to listen on
+   * @param host  the host to listen on
+   * @param listenHandler  the listen handler
+   */
   def listen(port: Int, host: String): Task[HttpServer] =
     Task.handle[JavaHttpServer] { listenHandler =>
       unwrap.listen(port, host, listenHandler)
     }.map(out => HttpServer(out))
 
-  // Async handler method
+  /**
+   *  Tell the server to start listening on the given address supplying
+   *  a handler that will be called when the server is actually
+   *  listening (or has failed).
+   * @param address the address to listen on
+   * @param listenHandler  the listen handler
+   */
   def listen(address: SocketAddress): Task[HttpServer] =
     Task.handle[JavaHttpServer] { listenHandler =>
       unwrap.listen(address, listenHandler)
     }.map(out => HttpServer(out))
 
-  // Async handler method
+  /**
+   *  Like {@link #listen(int)} but supplying a handler that will be called when the server is actually listening (or has failed).
+   * @param port  the port to listen on
+   * @param listenHandler  the listen handler
+   */
   def listen(port: Int): Task[HttpServer] =
     Task.handle[JavaHttpServer] { listenHandler =>
       unwrap.listen(port, listenHandler)
     }.map(out => HttpServer(out))
 
-  // Async handler method
+  /**
+   *  Like {@link #listen} but supplying a handler that will be called when the server is actually listening (or has failed).
+   * @param listenHandler  the listen handler
+   */
   def listen(): Task[HttpServer] =
     Task.handle[JavaHttpServer] { listenHandler =>
       unwrap.listen(listenHandler)
     }.map(out => HttpServer(out))
 
-  // Async handler method
+  /**
+   *  Like {@link #close} but supplying a handler that will be called when the server is actually closed (or has failed).
+   * @param completionHandler  the handler
+   */
   def close(): Task[Unit] =
     Task.handle[Void] { completionHandler =>
       unwrap.close(completionHandler)
     }.map(_ => ())
 
-  // Standard method
+  /**
+   *  The actual port the server is listening on. This is useful if you bound the server specifying 0 as port number
+   *  signifying an ephemeral port
+   * @return the actual port the server is listening on.
+   */
   def actualPort(): Int =
     unwrap.actualPort()
 }

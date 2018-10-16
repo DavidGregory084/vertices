@@ -17,114 +17,199 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
+  /**
+   *  Represents a socket-like interface to a TCP connection on either the
+   *  client or the server side.
+   *  <p>
+   *  Instances of this class are created on the client side by an {@link NetClient}
+   *  when a connection to a server is made, or on the server side by a {@link NetServer}
+   *  when a server accepts a connection.
+   *  <p>
+   *  It implements both {@link ReadStream} and {@link WriteStream} so it can be used with
+   *  {@link io.vertx.core.streams.Pump} to pump data with flow control.
+   * @author <a href="http://tfox.org">Tim Fox</a>
+   */
 case class NetSocket(val unwrap: JavaNetSocket) extends AnyVal {
-  // Standard method
+  /**
+   *  Same as {@link #end()} but writes some data to the stream before ending.
+   */
   def end(t: Buffer): Unit =
     unwrap.end(t)
 
-  // Standard method
+  /**
+   *  This will return {@code true} if there are more bytes in the write queue than the value set using {@link
+   *  #setWriteQueueMaxSize}
+   * @return true if write queue is full
+   */
   def writeQueueFull(): Boolean =
     unwrap.writeQueueFull()
 
-  // Wrapper method
+
   def exceptionHandler(handler: Handler[Throwable]): NetSocket =
     NetSocket(unwrap.exceptionHandler(handler))
 
-  // Wrapper method
+
   def handler(handler: Handler[Buffer]): NetSocket =
     NetSocket(unwrap.handler(handler))
 
-  // Wrapper method
+
   def pause(): NetSocket =
     NetSocket(unwrap.pause())
 
-  // Wrapper method
+
   def resume(): NetSocket =
     NetSocket(unwrap.resume())
 
-  // Wrapper method
+
   def fetch(amount: Long): NetSocket =
     NetSocket(unwrap.fetch(amount))
 
-  // Wrapper method
+
   def endHandler(endHandler: Handler[Void]): NetSocket =
     NetSocket(unwrap.endHandler(endHandler))
 
-  // Wrapper method
+
   def write(data: Buffer): NetSocket =
     NetSocket(unwrap.write(data))
 
-  // Wrapper method
+
   def setWriteQueueMaxSize(maxSize: Int): NetSocket =
     NetSocket(unwrap.setWriteQueueMaxSize(maxSize))
 
-  // Wrapper method
+
   def drainHandler(handler: Handler[Void]): NetSocket =
     NetSocket(unwrap.drainHandler(handler))
 
-  // Standard method
+  /**
+   *  When a {@code NetSocket} is created it automatically registers an event handler with the event bus, the ID of that
+   *  handler is given by {@code writeHandlerID}.
+   *  <p>
+   *  Given this ID, a different event loop can send a buffer to that event handler using the event bus and
+   *  that buffer will be received by this instance in its own event loop and written to the underlying connection. This
+   *  allows you to write data to other connections which are owned by different event loops.
+   * @return the write handler ID
+   */
   def writeHandlerID(): String =
     unwrap.writeHandlerID()
 
-  // Wrapper method
+  /**
+   *  Write a {@link String} to the connection, encoded in UTF-8.
+   * @param str  the string to write
+   * @return a reference to this, so the API can be used fluently
+   */
   def write(str: String): NetSocket =
     NetSocket(unwrap.write(str))
 
-  // Wrapper method
+  /**
+   *  Write a {@link String} to the connection, encoded using the encoding {@code enc}.
+   * @param str  the string to write
+   * @param enc  the encoding to use
+   * @return a reference to this, so the API can be used fluently
+   */
   def write(str: String, enc: String): NetSocket =
     NetSocket(unwrap.write(str, enc))
 
-  // Async handler method
+  /**
+   *  Same as {@link #sendFile(String)} but also takes a handler that will be called when the send has completed or
+   *  a failure has occurred
+   * @param filename  file name of the file to send
+   * @param resultHandler  handler
+   * @return a reference to this, so the API can be used fluently
+   */
   def sendFile(filename: String): Task[Unit] =
     Task.handle[Void] { resultHandler =>
       unwrap.sendFile(filename, resultHandler)
     }.map(_ => ())
 
-  // Async handler method
+  /**
+   *  Same as {@link #sendFile(String, long)} but also takes a handler that will be called when the send has completed or
+   *  a failure has occurred
+   * @param filename  file name of the file to send
+   * @param offset offset
+   * @param resultHandler  handler
+   * @return a reference to this, so the API can be used fluently
+   */
   def sendFile(filename: String, offset: Long): Task[Unit] =
     Task.handle[Void] { resultHandler =>
       unwrap.sendFile(filename, offset, resultHandler)
     }.map(_ => ())
 
-  // Async handler method
+  /**
+   *  Same as {@link #sendFile(String, long, long)} but also takes a handler that will be called when the send has completed or
+   *  a failure has occurred
+   * @param filename  file name of the file to send
+   * @param offset offset
+   * @param length length
+   * @param resultHandler  handler
+   * @return a reference to this, so the API can be used fluently
+   */
   def sendFile(filename: String, offset: Long, length: Long): Task[Unit] =
     Task.handle[Void] { resultHandler =>
       unwrap.sendFile(filename, offset, length, resultHandler)
     }.map(_ => ())
 
-  // Standard method
+  /**
+   * 
+   * @return the remote address for this socket
+   */
   def remoteAddress(): SocketAddress =
     unwrap.remoteAddress()
 
-  // Standard method
+  /**
+   * 
+   * @return the local address for this socket
+   */
   def localAddress(): SocketAddress =
     unwrap.localAddress()
 
-  // Standard method
+  /**
+   *  Calls {@link #close()}
+   */
   def end(): Unit =
     unwrap.end()
 
-  // Standard method
+  /**
+   *  Close the NetSocket
+   */
   def close(): Unit =
     unwrap.close()
 
-  // Wrapper method
+  /**
+   *  Set a handler that will be called when the NetSocket is closed
+   * @param handler  the handler
+   * @return a reference to this, so the API can be used fluently
+   */
   def closeHandler(handler: Handler[Void]): NetSocket =
     NetSocket(unwrap.closeHandler(handler))
 
-  // Wrapper method
+  /**
+   *  Upgrade channel to use SSL/TLS. Be aware that for this to work SSL must be configured.
+   * @param handler  the handler will be notified when it's upgraded
+   * @return a reference to this, so the API can be used fluently
+   */
   def upgradeToSsl(handler: Handler[Void]): NetSocket =
     NetSocket(unwrap.upgradeToSsl(handler))
 
-  // Wrapper method
+  /**
+   *  Upgrade channel to use SSL/TLS. Be aware that for this to work SSL must be configured.
+   * @param serverName the server name
+   * @param handler  the handler will be notified when it's upgraded
+   * @return a reference to this, so the API can be used fluently
+   */
   def upgradeToSsl(serverName: String, handler: Handler[Void]): NetSocket =
     NetSocket(unwrap.upgradeToSsl(serverName, handler))
 
-  // Standard method
+  /**
+   * 
+   * @return true if this {@link io.vertx.core.net.NetSocket} is encrypted via SSL/TLS.
+   */
   def isSsl(): Boolean =
     unwrap.isSsl()
 
-  // Standard method
+  /**
+   *  Returns the SNI server name presented during the SSL handshake by the client.
+   * @return the indicated server name
+   */
   def indicatedServerName(): String =
     unwrap.indicatedServerName()
 }

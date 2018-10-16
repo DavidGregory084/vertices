@@ -17,26 +17,48 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
+  /**
+   *  An auth handler that provides HTTP Basic Authentication support.
+   * @author <a href="mailto:plopes@redhat.com">Paulo Lopes</a>
+   */
 case class DigestAuthHandler(val unwrap: JavaDigestAuthHandler) extends AnyVal {
-  // Standard method
+
   def handle(arg0: RoutingContext): Unit =
     unwrap.handle(arg0)
 
-  // Standard method
+  /**
+   *  Add a required authority for this auth handler
+   * @param authority  the authority
+   * @return a reference to this, so the API can be used fluently
+   */
   def addAuthority(authority: String): AuthHandler =
     unwrap.addAuthority(authority)
 
-  // Standard method
+  /**
+   *  Add a set of required authorities for this auth handler
+   * @param authorities  the set of authorities
+   * @return a reference to this, so the API can be used fluently
+   */
   def addAuthorities(authorities: Set[String]): AuthHandler =
     unwrap.addAuthorities(authorities)
 
-  // Async handler method
+  /**
+   *  Parses the credentials from the request into a JsonObject. The implementation should
+   *  be able to extract the required info for the auth provider in the format the provider
+   *  expects.
+   * @param context the routing context
+   * @param handler the handler to be called once the information is available.
+   */
   def parseCredentials(context: RoutingContext): Task[JsonObject] =
     Task.handle[JsonObject] { handler =>
       unwrap.parseCredentials(context, handler)
     }
 
-  // Async handler method
+  /**
+   *  Authorizes the given user against all added authorities.
+   * @param user a user.
+   * @param handler the handler for the result.
+   */
   def authorize(user: User): Task[Unit] =
     Task.handle[Void] { handler =>
       unwrap.authorize(user, handler)
@@ -46,11 +68,20 @@ object DigestAuthHandler {
   implicit def javaDigestAuthHandlerToVerticesDigestAuthHandler(j: JavaDigestAuthHandler): DigestAuthHandler = apply(j)
   implicit def verticesDigestAuthHandlerToJavaDigestAuthHandler(v: DigestAuthHandler): JavaDigestAuthHandler = v.unwrap
 
-  // Wrapper method
+  /**
+   *  Create a digest auth handler
+   * @param authProvider the auth provider to use
+   * @return the auth handler
+   */
   def create(authProvider: HtdigestAuth): DigestAuthHandler =
     DigestAuthHandler(JavaDigestAuthHandler.create(authProvider))
 
-  // Wrapper method
+  /**
+   *  Create a digest auth handler, specifying the expire timeout for nonces.
+   * @param authProvider       the auth service to use
+   * @param nonceExpireTimeout the nonce expire timeout in milliseconds.
+   * @return the auth handler
+   */
   def create(authProvider: HtdigestAuth, nonceExpireTimeout: Long): DigestAuthHandler =
     DigestAuthHandler(JavaDigestAuthHandler.create(authProvider, nonceExpireTimeout))
 }

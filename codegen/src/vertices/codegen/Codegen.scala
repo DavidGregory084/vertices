@@ -1,6 +1,7 @@
 package vertices.codegen
 
 import io.vertx.codegen._
+import io.vertx.codegen.doc._
 import io.vertx.codegen.`type`._
 import java.nio.file.{ Files, Path }
 import java.nio.charset.StandardCharsets
@@ -188,6 +189,49 @@ object Codegen {
       }
     }
 
+    // val tokenMapper: java.util.function.Function[Token, Token] = token => {
+    //   token match {
+    //     case text: Token.Text =>
+    //       text
+    //     case lineBreak: Token.LineBreak =>
+    //       lineBreak
+    //     case inlineTag: Token.InlineTag =>
+    //       val tag = inlineTag.getTag
+    //       println(tag.getName)
+    //       println(tag.getValue)
+    //       if (tag.getName.trim == "code") {
+    //         println("Replacing code tag")
+    //         new Token.Text("`" + tag.getValue + "`")
+    //       } else if (tag.getName.trim == "link") {
+    //         println("Replacing link tag")
+    //         new Token.Text("[[" + tag.getValue + "]]")
+    //       } else {
+    //         inlineTag
+    //       }
+    //   }
+    // }
+
+    def javaDocToScalaDoc(doc: Doc): String = {
+      val sep = System.lineSeparator
+
+      // val docString = new Doc(
+      //   doc.getFirstSentence.map(tokenMapper),
+      //   if (doc.getBody != null) doc.getBody.map(tokenMapper) else null,
+      //   doc.getBlockTags
+      // ).toString
+
+      // println(docString)
+
+      doc.toString
+        .split("\\r?\\n")
+        .map("   * " + _)
+        .mkString(
+          "  /**" + sep,
+          sep,
+          sep + "   */"
+        )
+    }
+
     def instanceMethods(methods: List[MethodInfo]) = methods.map { method =>
       val tparams = method.getTypeParams.asScala.toList
       val tparamString = typeParameters(tparams)
@@ -195,6 +239,10 @@ object Codegen {
       val kind = method.getKind
       val handledParam = handlerParam(kind, params, tparam = true)
       val retType = returnType(kind, params, method.getReturnType)
+
+      val scalaDoc = Option(method.getDoc)
+        .map(javaDocToScalaDoc)
+        .getOrElse("")
 
       val rawReturnType =
         if (method.getReturnType.isInstanceOf[ParameterizedTypeInfo])
@@ -205,7 +253,7 @@ object Codegen {
       if (kind == MethodKind.FUTURE) {
         val paramNames = params.map(p => sanitiseName(p.getName)).mkString(", ")
         s"""
-        |  // Async handler method
+        |${scalaDoc}
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
         |    Task.handle[${handledParam}] { ${params.last.getName} =>
         |      unwrap.${sanitiseName(method.getName)}(${paramNames})
@@ -214,14 +262,14 @@ object Codegen {
       } else if (wrappedModels.contains(rawReturnType.getName)) {
         val paramNames = params.map(paramConversions).mkString(", ")
         s"""
-        |  // Wrapper method
+        |${scalaDoc}
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
         |    ${scalaTypeName(method.getReturnType)}(unwrap.${sanitiseName(method.getName)}(${paramNames}))${miscConversions(method.getReturnType)}
         """
       } else {
         val paramNames = params.map(paramConversions).mkString(", ")
         s"""
-        |  // Standard method
+        |${scalaDoc}
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
         |    unwrap.${sanitiseName(method.getName)}(${paramNames})${miscConversions(method.getReturnType)}
         """
@@ -236,6 +284,10 @@ object Codegen {
       val handledParam = handlerParam(kind, params, tparam = true)
       val retType = returnType(kind, params, method.getReturnType)
 
+      val scalaDoc = Option(method.getDoc)
+        .map(javaDocToScalaDoc)
+        .getOrElse("")
+
       val rawReturnType =
         if (method.getReturnType.isInstanceOf[ParameterizedTypeInfo])
           method.getReturnType.getRaw
@@ -245,7 +297,7 @@ object Codegen {
       if (kind == MethodKind.FUTURE) {
         val paramNames = params.map(p => sanitiseName(p.getName)).mkString(", ")
         s"""
-        |  // Async handler method
+        |${scalaDoc}
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
         |    Task.handle[${handledParam}] { ${params.last.getName} =>
         |      Java${tpNme}.${sanitiseName(method.getName)}(${paramNames})
@@ -254,14 +306,14 @@ object Codegen {
       } else if (wrappedModels.contains(rawReturnType.getName)) {
         val paramNames = params.map(paramConversions).mkString(", ")
         s"""
-        |  // Wrapper method
+        |${scalaDoc}
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
         |    ${method.getReturnType.getSimpleName}(Java${tpNme}.${sanitiseName(method.getName)}(${paramNames}))
         """
       } else {
         val paramNames = params.map(paramConversions).mkString(", ")
         s"""
-        |  // Standard method
+        |${scalaDoc}
         |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
         |    Java${tpNme}.${sanitiseName(method.getName)}(${paramNames})
         """
@@ -358,6 +410,10 @@ object Codegen {
       |""".trim.stripMargin
     }
 
+    val scalaDoc = Option(model.getDoc)
+      .map(javaDocToScalaDoc)
+      .getOrElse("")
+
     val template = {
       val classTemplate =
         s"""
@@ -370,6 +426,7 @@ object Codegen {
         |
         |import scala.language.implicitConversions
         |
+        |${scalaDoc}
         |case class ${tpNme}${tparamString}(val unwrap: Java${tpNme}${tparamString}) ${anyVal}{
         |${instanceMethods(deduplicatedInsMethods)}
         |}

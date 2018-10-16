@@ -11,44 +11,75 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
+  /**
+   *  An asynchronous counter that can be used to across the cluster to maintain a consistent count.
+   *  <p>
+   * @author <a href="http://tfox.org">Tim Fox</a>
+   */
 case class Counter(val unwrap: JavaCounter) extends AnyVal {
-  // Async handler method
+  /**
+   *  Get the current value of the counter
+   * @param resultHandler handler which will be passed the value
+   */
   def get(): Task[Long] =
     Task.handle[java.lang.Long] { resultHandler =>
       unwrap.get(resultHandler)
     }.map(out => out: Long)
 
-  // Async handler method
+  /**
+   *  Increment the counter atomically and return the new count
+   * @param resultHandler handler which will be passed the value
+   */
   def incrementAndGet(): Task[Long] =
     Task.handle[java.lang.Long] { resultHandler =>
       unwrap.incrementAndGet(resultHandler)
     }.map(out => out: Long)
 
-  // Async handler method
+  /**
+   *  Increment the counter atomically and return the value before the increment.
+   * @param resultHandler handler which will be passed the value
+   */
   def getAndIncrement(): Task[Long] =
     Task.handle[java.lang.Long] { resultHandler =>
       unwrap.getAndIncrement(resultHandler)
     }.map(out => out: Long)
 
-  // Async handler method
+  /**
+   *  Decrement the counter atomically and return the new count
+   * @param resultHandler handler which will be passed the value
+   */
   def decrementAndGet(): Task[Long] =
     Task.handle[java.lang.Long] { resultHandler =>
       unwrap.decrementAndGet(resultHandler)
     }.map(out => out: Long)
 
-  // Async handler method
+  /**
+   *  Add the value to the counter atomically and return the new count
+   * @param value  the value to add
+   * @param resultHandler handler which will be passed the value
+   */
   def addAndGet(value: Long): Task[Long] =
     Task.handle[java.lang.Long] { resultHandler =>
       unwrap.addAndGet(value, resultHandler)
     }.map(out => out: Long)
 
-  // Async handler method
+  /**
+   *  Add the value to the counter atomically and return the value before the add
+   * @param value  the value to add
+   * @param resultHandler handler which will be passed the value
+   */
   def getAndAdd(value: Long): Task[Long] =
     Task.handle[java.lang.Long] { resultHandler =>
       unwrap.getAndAdd(value, resultHandler)
     }.map(out => out: Long)
 
-  // Async handler method
+  /**
+   *  Set the counter to the specified value only if the current value is the expectec value. This happens
+   *  atomically.
+   * @param expected  the expected value
+   * @param value  the new value
+   * @param resultHandler  the handler will be passed true on success
+   */
   def compareAndSet(expected: Long, value: Long): Task[Boolean] =
     Task.handle[java.lang.Boolean] { resultHandler =>
       unwrap.compareAndSet(expected, value, resultHandler)

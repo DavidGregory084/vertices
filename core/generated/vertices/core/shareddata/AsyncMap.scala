@@ -12,68 +12,131 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
+  /**
+   *  An asynchronous map.
+   *  <p>
+   *  {@link AsyncMap} does <em>not</em> allow {@code null} to be used as a key or value.
+   * @implSpec Implementations of the interface must handle {@link io.vertx.core.shareddata.impl.ClusterSerializable}
+   *  implementing objects.
+   * @author <a href="http://tfox.org">Tim Fox</a>
+   */
 case class AsyncMap[K, V](val unwrap: JavaAsyncMap[K, V])  {
-  // Async handler method
+  /**
+   *  Get a value from the map, asynchronously.
+   * @param k  the key
+   * @param resultHandler - this will be called some time later with the async result.
+   */
   def get(k: K): Task[V] =
     Task.handle[V] { resultHandler =>
       unwrap.get(k, resultHandler)
     }
 
-  // Async handler method
+  /**
+   *  Put a value in the map, asynchronously.
+   * @param k  the key
+   * @param v  the value
+   * @param completionHandler - this will be called some time later to signify the value has been put
+   */
   def put(k: K, v: V): Task[Unit] =
     Task.handle[Void] { completionHandler =>
       unwrap.put(k, v, completionHandler)
     }.map(_ => ())
 
-  // Async handler method
+  /**
+   *  Like {@link #put} but specifying a time to live for the entry. Entry will expire and get evicted after the
+   *  ttl.
+   * @param k  the key
+   * @param v  the value
+   * @param ttl  The time to live (in ms) for the entry
+   * @param completionHandler  the handler
+   */
   def put(k: K, v: V, ttl: Long): Task[Unit] =
     Task.handle[Void] { completionHandler =>
       unwrap.put(k, v, ttl, completionHandler)
     }.map(_ => ())
 
-  // Async handler method
+  /**
+   *  Put the entry only if there is no entry with the key already present. If key already present then the existing
+   *  value will be returned to the handler, otherwise null.
+   * @param k  the key
+   * @param v  the value
+   * @param completionHandler  the handler
+   */
   def putIfAbsent(k: K, v: V): Task[V] =
     Task.handle[V] { completionHandler =>
       unwrap.putIfAbsent(k, v, completionHandler)
     }
 
-  // Async handler method
+  /**
+   *  Link {@link #putIfAbsent} but specifying a time to live for the entry. Entry will expire and get evicted
+   *  after the ttl.
+   * @param k  the key
+   * @param v  the value
+   * @param ttl  The time to live (in ms) for the entry
+   * @param completionHandler  the handler
+   */
   def putIfAbsent(k: K, v: V, ttl: Long): Task[V] =
     Task.handle[V] { completionHandler =>
       unwrap.putIfAbsent(k, v, ttl, completionHandler)
     }
 
-  // Async handler method
+  /**
+   *  Remove a value from the map, asynchronously.
+   * @param k  the key
+   * @param resultHandler - this will be called some time later to signify the value has been removed
+   */
   def remove(k: K): Task[V] =
     Task.handle[V] { resultHandler =>
       unwrap.remove(k, resultHandler)
     }
 
-  // Async handler method
+  /**
+   *  Remove a value from the map, only if entry already exists with same value.
+   * @param k  the key
+   * @param v  the value
+   * @param resultHandler - this will be called some time later to signify the value has been removed
+   */
   def removeIfPresent(k: K, v: V): Task[Boolean] =
     Task.handle[java.lang.Boolean] { resultHandler =>
       unwrap.removeIfPresent(k, v, resultHandler)
     }.map(out => out: Boolean)
 
-  // Async handler method
+  /**
+   *  Replace the entry only if it is currently mapped to some value
+   * @param k  the key
+   * @param v  the new value
+   * @param resultHandler  the result handler will be passed the previous value
+   */
   def replace(k: K, v: V): Task[V] =
     Task.handle[V] { resultHandler =>
       unwrap.replace(k, v, resultHandler)
     }
 
-  // Async handler method
+  /**
+   *  Replace the entry only if it is currently mapped to a specific value
+   * @param k  the key
+   * @param oldValue  the existing value
+   * @param newValue  the new value
+   * @param resultHandler the result handler
+   */
   def replaceIfPresent(k: K, oldValue: V, newValue: V): Task[Boolean] =
     Task.handle[java.lang.Boolean] { resultHandler =>
       unwrap.replaceIfPresent(k, oldValue, newValue, resultHandler)
     }.map(out => out: Boolean)
 
-  // Async handler method
+  /**
+   *  Clear all entries in the map
+   * @param resultHandler  called on completion
+   */
   def clear(): Task[Unit] =
     Task.handle[Void] { resultHandler =>
       unwrap.clear(resultHandler)
     }.map(_ => ())
 
-  // Async handler method
+  /**
+   *  Provide the number of entries in the map
+   * @param resultHandler  handler which will receive the number of entries
+   */
   def size(): Task[Int] =
     Task.handle[java.lang.Integer] { resultHandler =>
       unwrap.size(resultHandler)

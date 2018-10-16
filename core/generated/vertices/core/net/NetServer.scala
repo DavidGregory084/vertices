@@ -15,50 +15,95 @@ import monix.eval.Task
 
 import scala.language.implicitConversions
 
+  /**
+   *  Represents a TCP server
+   * @author <a href="http://tfox.org">Tim Fox</a>
+   */
 case class NetServer(val unwrap: JavaNetServer) extends AnyVal {
-  // Standard method
+  /**
+   *  Whether the metrics are enabled for this measured object
+   * @implSpec  The default implementation returns {@code false}
+   * @return {@code true} if metrics are enabled
+   */
   def isMetricsEnabled(): Boolean =
     unwrap.isMetricsEnabled()
 
-  // Standard method
+  /**
+   *  Return the connect stream for this server. The server can only have at most one handler at any one time.
+   *  As the server accepts TCP or SSL connections it creates an instance of {@link NetSocket} and passes it to the
+   *  connect stream {@link ReadStream#handler(io.vertx.core.Handler)}.
+   * @return the connect stream
+   */
   def connectStream(): ReadStream[NetSocket] =
     unwrap.connectStream().map(NetSocket.apply)
 
-  // Wrapper method
+  /**
+   *  Supply a connect handler for this server. The server can only have at most one connect handler at any one time.
+   *  As the server accepts TCP or SSL connections it creates an instance of {@link NetSocket} and passes it to the
+   *  connect handler.
+   * @return a reference to this, so the API can be used fluently
+   */
   def connectHandler(handler: Handler[NetSocket]): NetServer =
     NetServer(unwrap.connectHandler(handler.contramap((in: JavaNetSocket) => NetSocket(in))))
 
-  // Async handler method
+  /**
+   *  Like {@link #listen} but providing a handler that will be notified when the server is listening, or fails.
+   * @param listenHandler  handler that will be notified when listening or failed
+   * @return a reference to this, so the API can be used fluently
+   */
   def listen(): Task[NetServer] =
     Task.handle[JavaNetServer] { listenHandler =>
       unwrap.listen(listenHandler)
     }.map(out => NetServer(out))
 
-  // Async handler method
+  /**
+   *  Like {@link #listen(int, String)} but providing a handler that will be notified when the server is listening, or fails.
+   * @param port  the port to listen on
+   * @param host  the host to listen on
+   * @param listenHandler handler that will be notified when listening or failed
+   * @return a reference to this, so the API can be used fluently
+   */
   def listen(port: Int, host: String): Task[NetServer] =
     Task.handle[JavaNetServer] { listenHandler =>
       unwrap.listen(port, host, listenHandler)
     }.map(out => NetServer(out))
 
-  // Async handler method
+  /**
+   *  Like {@link #listen(int)} but providing a handler that will be notified when the server is listening, or fails.
+   * @param port  the port to listen on
+   * @param listenHandler handler that will be notified when listening or failed
+   * @return a reference to this, so the API can be used fluently
+   */
   def listen(port: Int): Task[NetServer] =
     Task.handle[JavaNetServer] { listenHandler =>
       unwrap.listen(port, listenHandler)
     }.map(out => NetServer(out))
 
-  // Async handler method
+  /**
+   *  Like {@link #listen(SocketAddress)} but providing a handler that will be notified when the server is listening, or fails.
+   * @param localAddress the local address to listen on
+   * @param listenHandler handler that will be notified when listening or failed
+   * @return a reference to this, so the API can be used fluently
+   */
   def listen(localAddress: SocketAddress): Task[NetServer] =
     Task.handle[JavaNetServer] { listenHandler =>
       unwrap.listen(localAddress, listenHandler)
     }.map(out => NetServer(out))
 
-  // Async handler method
+  /**
+   *  Like {@link #close} but supplying a handler that will be notified when close is complete.
+   * @param completionHandler  the handler
+   */
   def close(): Task[Unit] =
     Task.handle[Void] { completionHandler =>
       unwrap.close(completionHandler)
     }.map(_ => ())
 
-  // Standard method
+  /**
+   *  The actual port the server is listening on. This is useful if you bound the server specifying 0 as port number
+   *  signifying an ephemeral port
+   * @return the actual port the server is listening on.
+   */
   def actualPort(): Int =
     unwrap.actualPort()
 }
