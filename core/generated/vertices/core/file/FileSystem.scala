@@ -311,6 +311,66 @@ case class FileSystem(val unwrap: JavaFileSystem) extends AnyVal {
   // Standard method
   def fsPropsBlocking(path: String): FileSystemProps =
     unwrap.fsPropsBlocking(path)
+
+  // Async handler method
+  def createTempDirectory(prefix: String): Task[String] =
+    Task.handle[String] { handler =>
+      unwrap.createTempDirectory(prefix, handler)
+    }
+
+  // Standard method
+  def createTempDirectoryBlocking(prefix: String): String =
+    unwrap.createTempDirectoryBlocking(prefix)
+
+  // Async handler method
+  def createTempDirectory(prefix: String, perms: String): Task[String] =
+    Task.handle[String] { handler =>
+      unwrap.createTempDirectory(prefix, perms, handler)
+    }
+
+  // Standard method
+  def createTempDirectoryBlocking(prefix: String, perms: String): String =
+    unwrap.createTempDirectoryBlocking(prefix, perms)
+
+  // Async handler method
+  def createTempDirectory(dir: String, prefix: String, perms: String): Task[String] =
+    Task.handle[String] { handler =>
+      unwrap.createTempDirectory(dir, prefix, perms, handler)
+    }
+
+  // Standard method
+  def createTempDirectoryBlocking(dir: String, prefix: String, perms: String): String =
+    unwrap.createTempDirectoryBlocking(dir, prefix, perms)
+
+  // Async handler method
+  def createTempFile(prefix: String, suffix: String): Task[String] =
+    Task.handle[String] { handler =>
+      unwrap.createTempFile(prefix, suffix, handler)
+    }
+
+  // Standard method
+  def createTempFileBlocking(prefix: String, suffix: String): String =
+    unwrap.createTempFileBlocking(prefix, suffix)
+
+  // Async handler method
+  def createTempFile(prefix: String, suffix: String, perms: String): Task[String] =
+    Task.handle[String] { handler =>
+      unwrap.createTempFile(prefix, suffix, perms, handler)
+    }
+
+  // Standard method
+  def createTempFileBlocking(prefix: String, suffix: String, perms: String): String =
+    unwrap.createTempFileBlocking(prefix, suffix, perms)
+
+  // Async handler method
+  def createTempFile(dir: String, prefix: String, suffix: String, perms: String): Task[String] =
+    Task.handle[String] { handler =>
+      unwrap.createTempFile(dir, prefix, suffix, perms, handler)
+    }
+
+  // Standard method
+  def createTempFileBlocking(dir: String, prefix: String, suffix: String, perms: String): String =
+    unwrap.createTempFileBlocking(dir, prefix, suffix, perms)
 }
 object FileSystem {
   implicit def javaFileSystemToVerticesFileSystem(j: JavaFileSystem): FileSystem = apply(j)

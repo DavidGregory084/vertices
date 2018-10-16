@@ -55,6 +55,10 @@ case class AsyncFile(val unwrap: JavaAsyncFile) extends AnyVal {
   def exceptionHandler(handler: Handler[Throwable]): AsyncFile =
     AsyncFile(unwrap.exceptionHandler(handler))
 
+  // Wrapper method
+  def fetch(amount: Long): AsyncFile =
+    AsyncFile(unwrap.fetch(amount))
+
   // Standard method
   def end(): Unit =
     unwrap.end()

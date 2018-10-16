@@ -43,6 +43,10 @@ case class NetSocket(val unwrap: JavaNetSocket) extends AnyVal {
     NetSocket(unwrap.resume())
 
   // Wrapper method
+  def fetch(amount: Long): NetSocket =
+    NetSocket(unwrap.fetch(amount))
+
+  // Wrapper method
   def endHandler(endHandler: Handler[Void]): NetSocket =
     NetSocket(unwrap.endHandler(endHandler))
 

@@ -4,10 +4,10 @@ package core.eventbus
 import cats.implicits._
 import io.vertx.core.AsyncResult
 import io.vertx.core.Handler
+import io.vertx.core.eventbus.DeliveryContext
 import io.vertx.core.eventbus.DeliveryOptions
 import io.vertx.core.eventbus.MessageCodec
 import io.vertx.core.eventbus.MessageProducer
-import io.vertx.core.eventbus.SendContext
 import io.vertx.core.eventbus.{ EventBus => JavaEventBus }
 import io.vertx.core.eventbus.{ Message => JavaMessage }
 import io.vertx.core.eventbus.{ MessageConsumer => JavaMessageConsumer }
@@ -78,6 +78,22 @@ case class EventBus(val unwrap: JavaEventBus) extends AnyVal {
   // Wrapper method
   def unregisterCodec(name: String): EventBus =
     EventBus(unwrap.unregisterCodec(name))
+
+  // Wrapper method
+  def addOutboundInterceptor[T](interceptor: Handler[DeliveryContext[T]]): EventBus =
+    EventBus(unwrap.addOutboundInterceptor(interceptor))
+
+  // Wrapper method
+  def removeOutboundInterceptor[T](interceptor: Handler[DeliveryContext[T]]): EventBus =
+    EventBus(unwrap.removeOutboundInterceptor(interceptor))
+
+  // Wrapper method
+  def addInboundInterceptor[T](interceptor: Handler[DeliveryContext[T]]): EventBus =
+    EventBus(unwrap.addInboundInterceptor(interceptor))
+
+  // Wrapper method
+  def removeInboundInterceptor[T](interceptor: Handler[DeliveryContext[T]]): EventBus =
+    EventBus(unwrap.removeInboundInterceptor(interceptor))
 }
 object EventBus {
   implicit def javaEventBusToVerticesEventBus(j: JavaEventBus): EventBus = apply(j)

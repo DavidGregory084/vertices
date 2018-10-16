@@ -32,6 +32,10 @@ case class MessageConsumer[T](val unwrap: JavaMessageConsumer[T])  {
     MessageConsumer[T](unwrap.resume())
 
   // Wrapper method
+  def fetch(amount: Long): MessageConsumer[T] =
+    MessageConsumer[T](unwrap.fetch(amount))
+
+  // Wrapper method
   def endHandler(endHandler: Handler[Void]): MessageConsumer[T] =
     MessageConsumer[T](unwrap.endHandler(endHandler))
 

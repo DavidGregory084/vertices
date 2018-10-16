@@ -4,6 +4,8 @@ package ext.web.sstore
 import cats.implicits._
 import io.vertx.core.AsyncResult
 import io.vertx.core.Handler
+import io.vertx.core.Vertx
+import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.Session
 import io.vertx.ext.web.sstore.{ SessionStore => JavaSessionStore }
 import java.lang.Integer
@@ -14,6 +16,10 @@ import monix.eval.Task
 import scala.language.implicitConversions
 
 case class SessionStore(val unwrap: JavaSessionStore) extends AnyVal {
+  // Wrapper method
+  def init(vertx: Vertx, options: JsonObject): SessionStore =
+    SessionStore(unwrap.init(vertx, options))
+
   // Standard method
   def retryTimeout(): Long =
     unwrap.retryTimeout()
@@ -27,9 +33,9 @@ case class SessionStore(val unwrap: JavaSessionStore) extends AnyVal {
     unwrap.createSession(timeout, length)
 
   // Async handler method
-  def get(id: String): Task[Session] =
+  def get(cookieValue: String): Task[Session] =
     Task.handle[Session] { resultHandler =>
-      unwrap.get(id, resultHandler)
+      unwrap.get(cookieValue, resultHandler)
     }
 
   // Async handler method
@@ -64,5 +70,11 @@ object SessionStore {
   implicit def javaSessionStoreToVerticesSessionStore(j: JavaSessionStore): SessionStore = apply(j)
   implicit def verticesSessionStoreToJavaSessionStore(v: SessionStore): JavaSessionStore = v.unwrap
 
+  // Wrapper method
+  def create(vertx: Vertx): SessionStore =
+    SessionStore(JavaSessionStore.create(vertx))
 
+  // Wrapper method
+  def create(vertx: Vertx, options: JsonObject): SessionStore =
+    SessionStore(JavaSessionStore.create(vertx, options))
 }

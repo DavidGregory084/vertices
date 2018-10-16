@@ -106,6 +106,10 @@ case class DatagramSocket(val unwrap: JavaDatagramSocket) extends AnyVal {
     DatagramSocket(unwrap.resume())
 
   // Wrapper method
+  def fetch(amount: Long): DatagramSocket =
+    DatagramSocket(unwrap.fetch(amount))
+
+  // Wrapper method
   def endHandler(endHandler: Handler[Void]): DatagramSocket =
     DatagramSocket(unwrap.endHandler(endHandler))
 

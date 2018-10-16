@@ -2,6 +2,10 @@ language: scala
 sudo: required
 dist: trusty
 
+jdk:
+  - openjdk8
+  - openjdk11
+
 script:
   - curl -L -o ~/bin/mill https://github.com/lihaoyi/mill/releases/download/0.2.6/0.2.6 && chmod +x ~/bin/mill
   - export PATH=~/bin/mill:$PATH

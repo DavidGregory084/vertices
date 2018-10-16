@@ -145,12 +145,14 @@ trait VertxCodegen extends ScalaSettingsModule {
   def generatedSourcesPath = T { millSourcePath / 'generated }
 
   def generate = T.sources {
-    val javaSources = for {
-      root <- vertxSources()
-      if exists(root.path)
-      path <- (if (root.path.isDir) ls.rec(root.path) else Seq(root.path))
-      if path.isFile && path.ext == "java"
-    } yield PathRef(path)
+    val javaSources = Agg.from(
+      for {
+        root <- vertxSources()
+        if exists(root.path)
+        path <- (if (root.path.isDir) ls.rec(root.path) else Seq(root.path))
+        if path.isFile && path.ext == "java"
+      } yield path
+    )
 
     if (generatedSourcesPath().toIO.exists)
       ls(generatedSourcesPath()).foreach(rm)
@@ -162,11 +164,11 @@ trait VertxCodegen extends ScalaSettingsModule {
       s"-Acodegen.output.dir=${generatedSourcesPath().toIO.toString}"
     )
 
-    Lib.compileJava(
-      javaSources.map(_.path.toIO).toArray,
-      (codegen.runClasspath().map(_.path.toIO) ++ compileClasspath().map(_.path.toIO)).toArray,
-      javacOptions() ++ processorOptions,
-      Seq.empty
+    zincWorker.worker().compileJava(
+      upstreamCompileOutput(),
+      javaSources,
+      codegen.runClasspath().map(_.path) ++ compileClasspath().map(_.path),
+      javacOptions() ++ processorOptions
     )
 
     Seq(PathRef(generatedSourcesPath()))
@@ -215,7 +217,9 @@ object web extends VertxCodegen {
   def vertxModules = Agg("vertx-web")
 
   def ivyDeps = Agg(
+    ivy"io.vertx:vertx-core:${vertxVersion()}",
     ivy"io.vertx:vertx-web:${vertxVersion()}",
+    ivy"io.vertx:vertx-web-common:${vertxVersion()}",
     ivy"io.vertx:vertx-bridge-common:${vertxVersion()}"
   )
 }

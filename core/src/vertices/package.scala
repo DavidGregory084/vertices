@@ -128,6 +128,10 @@ package object vertices {
         readStream.resume()
         this
       }
+      def fetch(amount: Long) = {
+        readStream.fetch(amount)
+        this
+      }
     }
   }
 }
