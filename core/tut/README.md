@@ -9,7 +9,7 @@ Vertices is a Scala library which provides wrapper APIs for [Eclipse Vert.x](htt
 
 ### Example
 
-```scala
+```tut:silent
 import cats.implicits._
 import vertices._
 import vertices.core._
@@ -19,10 +19,10 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 ```
 
-```scala
+```tut:book
+
 // Create a task which registers a message handler at the address "echo"
 val vertx = Vertx.vertx
-// vertx: vertices.core.Vertx = Vertx(io.vertx.core.impl.VertxImpl@2fc40856)
 
 val echoMessagesExuberantly = vertx.eventBus.
   consumer[String]("echo").
@@ -30,27 +30,21 @@ val echoMessagesExuberantly = vertx.eventBus.
   toObservable(vertx).
   // It's very important that it replies enthusiastically
   foreachL(msg => msg.reply(msg.body.toUpperCase))
-// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$481610448
-
+  
 // Kick that off in the background
 echoMessagesExuberantly.runAsync
-// res2: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@6d952747)
 
 // Send a message to the handler
 val sendAMessage = vertx.eventBus.
   send[String]("echo", "hello").
   foreachL(msg => println(msg.body))
-// sendAMessage: monix.eval.Task[Unit] = Task.Map$1008904602
 
 val demoTask =
   sendAMessage *> vertx.close // Tidy up after ourselves - this will unregister the handler and shut down Vert.x
-// demoTask: monix.eval.Task[Unit] = Task.FlatMap$1611732847
-
+  
 Await.result(demoTask.runAsync, 20.seconds)
-// HELLO
 
 vertx.close.runAsync
-// res5: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@53b1a09f)
 ```
 
 ### Conduct
