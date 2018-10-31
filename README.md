@@ -20,10 +20,10 @@ import scala.concurrent.duration._
 ```
 
 ```scala
-// Create a task which registers a message handler at the address "echo"
 val vertx = Vertx.vertx
-// vertx: vertices.core.Vertx = Vertx(io.vertx.core.impl.VertxImpl@2fc40856)
+// vertx: vertices.core.Vertx = Vertx(io.vertx.core.impl.VertxImpl@64f613da)
 
+// Create a task which registers a message handler at the address "echo"
 val echoMessagesExuberantly = vertx.eventBus.
   consumer[String]("echo").
   unwrap.
@@ -48,9 +48,6 @@ val demoTask =
 
 Await.result(demoTask.runAsync, 20.seconds)
 // HELLO
-
-vertx.close.runAsync
-// res5: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@53b1a09f)
 ```
 
 ### Conduct

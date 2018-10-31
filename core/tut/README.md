@@ -20,10 +20,9 @@ import scala.concurrent.duration._
 ```
 
 ```tut:book
-
-// Create a task which registers a message handler at the address "echo"
 val vertx = Vertx.vertx
 
+// Create a task which registers a message handler at the address "echo"
 val echoMessagesExuberantly = vertx.eventBus.
   consumer[String]("echo").
   unwrap.
@@ -43,8 +42,6 @@ val demoTask =
   sendAMessage *> vertx.close // Tidy up after ourselves - this will unregister the handler and shut down Vert.x
   
 Await.result(demoTask.runAsync, 20.seconds)
-
-vertx.close.runAsync
 ```
 
 ### Conduct
