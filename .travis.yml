@@ -7,9 +7,10 @@ jdk:
   - openjdk11
 
 script:
-  - curl -L -o ~/bin/mill https://github.com/lihaoyi/mill/releases/download/0.2.8/0.2.8 && chmod +x ~/bin/mill
+  - curl -L -o ~/bin/mill https://github.com/lihaoyi/mill/releases/download/0.3.2/0.3.2-17-7b4ced && chmod +x ~/bin/mill
   - export PATH=~/bin/mill:$PATH
   - mill _.compile
+  - mill core.tut
 
 cache:
   directories:

@@ -70,8 +70,8 @@ package object vertices {
     def toObserver: Task[Observer[A]] = Task.deferAction { implicit s =>
       Task.eval {
         val readStream = ReactiveReadStream.readStream[A]()
-        Pump.pump(readStream, writeStream).start()
-        Observer.fromReactiveSubscriber(readStream, Cancelable.empty)
+        val pump = Pump.pump(readStream, writeStream).start()
+        Observer.fromReactiveSubscriber(readStream, Cancelable(() => pump.stop()))
       }
     }
   }

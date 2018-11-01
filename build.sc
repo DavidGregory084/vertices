@@ -1,4 +1,4 @@
-import mill._, scalalib._, modules.Util
+import mill._, scalalib._, contrib.tut._, modules.Util
 
 import ammonite.ops._
 import coursier.maven.MavenRepository
@@ -177,7 +177,10 @@ trait VertxCodegen extends ScalaSettingsModule {
   override def generatedSources = T { super.generatedSources() ++ generate() }
 }
 
-object core extends VertxCodegen {
+object core extends VertxCodegen with TutModule {
+  def tutVersion = "0.6.9"
+  def tutTargetDirectory = millSourcePath / up
+
   def vertxModules = Agg("vertx-core")
 
   def ivyDeps = Agg(
