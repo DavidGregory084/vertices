@@ -7,7 +7,9 @@ import io.vertx.core.Handler
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.web.common.template.{ TemplateEngine => JavaTemplateEngine }
+import java.lang.Object
 import java.lang.String
+import java.util.Map
 import monix.eval.Task
 
 import scala.language.implicitConversions

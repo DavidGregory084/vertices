@@ -1,4 +1,4 @@
-import mill._, scalalib._, contrib.tut._, modules.Util
+import mill._, api.IO, scalalib._, contrib.tut._, modules.Util
 
 import ammonite.ops._
 import coursier.maven.MavenRepository
@@ -8,7 +8,7 @@ trait ScalaSettingsModule extends ScalaModule {
     super.repositories :+ MavenRepository("https://oss.sonatype.org/content/repositories/snapshots")
   }
 
-  def scalaVersion = "2.12.4"
+  def scalaVersion = "2.12.8"
 
   def scalacOptions = Seq(
     // Common options
@@ -63,7 +63,7 @@ trait ScalaSettingsModule extends ScalaModule {
     "-Ypartial-unification"
   )
 
-  def vertxVersion = T { "3.6.0-SNAPSHOT" }
+  def vertxVersion = T { "3.6.3" }
 
   object test extends Tests {
     def ivyDeps = Agg(ivy"org.scalatest::scalatest:3.0.5", ivy"org.scalacheck::scalacheck:1.14.0")
@@ -130,14 +130,14 @@ trait VertxCodegen extends ScalaSettingsModule {
 
   def vertxSources = T.sources {
     vertxSourceJars().foreach { path =>
-      Util.unpackZip(path)(T.ctx().dest)
+      IO.unpackZip(path)(T.ctx().dest)
     }
 
     rm(T.ctx().dest / 'unpacked / 'io / 'vertx / 'groovy)
     rm(T.ctx().dest / 'unpacked / 'io / 'vertx / 'reactivex)
     rm(T.ctx().dest / 'unpacked / 'io / 'vertx / 'rxjava)
 
-    ls.rec(T.ctx().dest / 'unpacked / 'io).filter(p => p.isDir && p.name == "impl").foreach(rm)
+    ls.rec(T.ctx().dest / 'unpacked / 'io).filter(p => p.isDir && p.last == "impl").foreach(rm)
 
     Seq(PathRef(T.ctx().dest / 'unpacked / 'io))
   }
@@ -178,7 +178,7 @@ trait VertxCodegen extends ScalaSettingsModule {
 }
 
 object core extends VertxCodegen with TutModule {
-  def tutVersion = "0.6.9"
+  def tutVersion = "0.6.10"
   def tutTargetDirectory = millSourcePath / up
 
   def vertxModules = Agg("vertx-core")
@@ -186,7 +186,7 @@ object core extends VertxCodegen with TutModule {
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-core:${vertxVersion()}",
     ivy"io.vertx:vertx-reactive-streams:${vertxVersion()}",
-    ivy"io.monix::monix:3.0.0-RC1",
+    ivy"io.monix::monix:3.0.0-RC2",
     ivy"com.chuusai::shapeless:2.3.3"
   )
 }

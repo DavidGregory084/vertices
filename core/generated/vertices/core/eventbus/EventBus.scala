@@ -168,15 +168,6 @@ case class EventBus(val unwrap: JavaEventBus) extends AnyVal {
     unwrap.publisher(address, options)
 
   /**
-   *  Unregister a message codec.
-   *  <p>
-   * @param name  the name of the codec
-   * @return a reference to this, so the API can be used fluently
-   */
-  def unregisterCodec(name: String): EventBus =
-    EventBus(unwrap.unregisterCodec(name))
-
-  /**
    *  Add an interceptor that will be called whenever a message is sent from Vert.x
    * @param interceptor  the interceptor
    * @return a reference to this, so the API can be used fluently

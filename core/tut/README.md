@@ -31,7 +31,7 @@ val echoMessagesExuberantly = vertx.eventBus.
   foreachL(msg => msg.reply(msg.body.toUpperCase))
   
 // Kick that off in the background
-echoMessagesExuberantly.runAsync
+echoMessagesExuberantly.runToFuture
 
 // Send a message to the handler
 val sendAMessage = vertx.eventBus.
@@ -41,7 +41,7 @@ val sendAMessage = vertx.eventBus.
 val demoTask =
   sendAMessage *> vertx.close // Tidy up after ourselves - this will unregister the handler and shut down Vert.x
   
-Await.result(demoTask.runAsync, 20.seconds)
+Await.result(demoTask.runToFuture, 20.seconds)
 ```
 
 ### Conduct

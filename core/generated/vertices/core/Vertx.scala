@@ -340,6 +340,15 @@ case class Vertx(val unwrap: JavaVertx) extends AnyVal {
    *  <p>
    *  In the {@code blockingCodeHandler} the current context remains the original context and therefore any task
    *  scheduled in the {@code blockingCodeHandler} will be executed on the this context and not on the worker thread.
+   *  <p>
+   *  The blocking code should block for a reasonable amount of time (i.e no more than a few seconds). Long blocking operations
+   *  or polling operations (i.e a thread that spin in a loop polling events in a blocking fashion) are precluded.
+   *  <p>
+   *  When the blocking operation lasts more than the 10 seconds, a message will be printed on the console by the
+   *  blocked thread checker.
+   *  <p>
+   *  Long blocking operations should use a dedicated thread managed by the application, which can interact with
+   *  verticles using the event-bus or {@link Context#runOnContext(Handler)}
    * @param blockingCodeHandler  handler representing the blocking code to run
    * @param resultHandler  handler that will be called when the blocking code is complete
    * @param ordered  if true then if executeBlocking is called several times on the same context, the executions

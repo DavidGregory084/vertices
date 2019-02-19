@@ -4,24 +4,24 @@ import cats.{ Contravariant, Functor }
 import io.vertx.core.{ AsyncResult, Future => VertxFuture, Handler }
 import io.vertx.core.streams.{ Pump, ReadStream, WriteStream }
 import io.vertx.ext.reactivestreams.{ ReactiveReadStream, ReactiveWriteStream }
-import monix.execution.Cancelable
-import monix.execution.misc.NonFatal
-import monix.eval.{ Callback, Task }
+import monix.execution.{ Callback, Cancelable }
+import monix.eval.Task
 import monix.reactive.{ Observable, Observer }
+import scala.util.control.NonFatal
 import shapeless.=:!=
 import vertices.core.Vertx
 
 package object vertices {
   implicit class MonixTaskCompanionVertxOps(task: Task.type) {
     def handle[A](f: Handler[AsyncResult[A]] => Unit): Task[A] = {
-      def handler(cb: Callback[A]): Handler[AsyncResult[A]] = { result =>
+      def handler(cb: Callback[Throwable, A]): Handler[AsyncResult[A]] = { result =>
         if (result.succeeded)
           cb.onSuccess(result.result)
         else
           cb.onError(result.cause)
       }
 
-      def runnable(cb: Callback[A]): Runnable =
+      def runnable(cb: Callback[Throwable, A]): Runnable =
         () => try f(handler(cb)) catch {
           case NonFatal(e) => cb.onError(e)
         }

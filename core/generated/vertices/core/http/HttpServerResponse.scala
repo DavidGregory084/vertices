@@ -8,6 +8,7 @@ import io.vertx.core.MultiMap
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.http.HttpFrame
 import io.vertx.core.http.HttpMethod
+import io.vertx.core.http.StreamPriority
 import io.vertx.core.http.{ HttpServerResponse => JavaHttpServerResponse }
 import io.vertx.core.streams.WriteStream
 import java.lang.CharSequence
@@ -408,6 +409,15 @@ case class HttpServerResponse(val unwrap: JavaHttpServerResponse) extends AnyVal
    */
   def writeCustomFrame(frame: HttpFrame): HttpServerResponse =
     HttpServerResponse(unwrap.writeCustomFrame(frame))
+
+  /**
+   *  Sets the priority of the associated stream
+   *  <p/>
+   *  This is not implemented for HTTP/1.x.
+   * @param streamPriority the priority for this request's stream
+   */
+  def setStreamPriority(streamPriority: StreamPriority): HttpServerResponse =
+    HttpServerResponse(unwrap.setStreamPriority(streamPriority))
 }
 object HttpServerResponse {
   implicit def javaHttpServerResponseToVerticesHttpServerResponse(j: JavaHttpServerResponse): HttpServerResponse = apply(j)

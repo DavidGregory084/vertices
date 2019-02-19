@@ -21,7 +21,7 @@ import scala.concurrent.duration._
 
 ```scala
 val vertx = Vertx.vertx
-// vertx: vertices.core.Vertx = Vertx(io.vertx.core.impl.VertxImpl@64f613da)
+// vertx: vertices.core.Vertx = Vertx(io.vertx.core.impl.VertxImpl@35198da3)
 
 // Create a task which registers a message handler at the address "echo"
 val echoMessagesExuberantly = vertx.eventBus.
@@ -30,23 +30,23 @@ val echoMessagesExuberantly = vertx.eventBus.
   toObservable(vertx).
   // It's very important that it replies enthusiastically
   foreachL(msg => msg.reply(msg.body.toUpperCase))
-// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$481610448
+// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$614850007
 
 // Kick that off in the background
-echoMessagesExuberantly.runAsync
-// res2: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.execution.cancelables.StackedCancelable$Impl@6d952747)
+echoMessagesExuberantly.runToFuture
+// res2: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.eval.internal.TaskConnection$Impl$$anon$1@31137f4d)
 
 // Send a message to the handler
 val sendAMessage = vertx.eventBus.
   send[String]("echo", "hello").
   foreachL(msg => println(msg.body))
-// sendAMessage: monix.eval.Task[Unit] = Task.Map$1008904602
+// sendAMessage: monix.eval.Task[Unit] = Task.Map$135972201
 
 val demoTask =
   sendAMessage *> vertx.close // Tidy up after ourselves - this will unregister the handler and shut down Vert.x
-// demoTask: monix.eval.Task[Unit] = Task.FlatMap$1611732847
+// demoTask: monix.eval.Task[Unit] = Task.FlatMap$742552199
 
-Await.result(demoTask.runAsync, 20.seconds)
+Await.result(demoTask.runToFuture, 20.seconds)
 // HELLO
 ```
 

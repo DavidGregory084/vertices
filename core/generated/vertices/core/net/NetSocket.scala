@@ -64,13 +64,14 @@ case class NetSocket(val unwrap: JavaNetSocket) extends AnyVal {
   def fetch(amount: Long): NetSocket =
     NetSocket(unwrap.fetch(amount))
 
-
+  /**
+   *  {@inheritDoc}
+   *  <p>
+   *  This handler might be called after the close handler when the socket is paused and there are still
+   *  buffers to deliver.
+   */
   def endHandler(endHandler: Handler[Void]): NetSocket =
     NetSocket(unwrap.endHandler(endHandler))
-
-
-  def write(data: Buffer): NetSocket =
-    NetSocket(unwrap.write(data))
 
 
   def setWriteQueueMaxSize(maxSize: Int): NetSocket =
@@ -108,6 +109,15 @@ case class NetSocket(val unwrap: JavaNetSocket) extends AnyVal {
    */
   def write(str: String, enc: String): NetSocket =
     NetSocket(unwrap.write(str, enc))
+
+  /**
+   *  Like {@link #write(Object)} but with an {@code handler} called when the message has been written
+   *  or failed to be written.
+   */
+  def write(message: Buffer): Task[Unit] =
+    Task.handle[Void] { handler =>
+      unwrap.write(message, handler)
+    }.map(_ => ())
 
   /**
    *  Same as {@link #sendFile(String)} but also takes a handler that will be called when the send has completed or
