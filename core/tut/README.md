@@ -189,10 +189,12 @@ ivy"io.github.davidgregory084::vertices-health-check:${verticesVersion()}"
 ### FAQ
 
 Q. Why is `<some module>` missing?
+
 A. The stable modules that have `Handler` operations have been added. If there are new modules that you need please raise a PR.
 
 Q. Why is `<some method>` missing from the generated code?
-A. The Vert.x code generation process relies on annotations in the original Java code. Sometimes these annotations are missing for `Handler` methods that could be wrapped by *vertices*. The answer is to raise a PR against the corresponding Vert.x project to add the annotations ([see example](https://github.com/eclipse-vertx/vert.x/pull/2573)).
+
+A. The Vert.x code generation process relies on annotations in the original Java code. Sometimes these annotations are missing for `Handler` methods that could be wrapped by *vertices*. The solution is to raise a PR against the corresponding Vert.x project to add the annotations ([see example](https://github.com/eclipse-vertx/vert.x/pull/2573)).
 
 ### Conduct
 
