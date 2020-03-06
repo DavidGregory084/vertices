@@ -3,22 +3,27 @@ package vertices.codegen
 import io.vertx.codegen._
 import io.vertx.codegen.doc._
 import io.vertx.codegen.`type`._
-import java.nio.file.{ Files, Path }
-import java.nio.charset.StandardCharsets
-import scala.collection.JavaConverters._
+import java.lang.{ String, System }
+import java.util.{ HashSet, List }
+import java.util.stream.{ Collectors, Stream }
+import scala.{ Array, Boolean, Char, Int, Option, StringContext }
+import scala.Predef.augmentString
 
 object Codegen {
-  val excludedMethods = Set(
-    "addInterceptor",
-    "removeInterceptor"
-  )
+  val excludedMethods = {
+    val excluded = new HashSet[String]()
+    // excluded.add("addInterceptor")
+    // excluded.add("removeInterceptor")
+    // excluded.add("pipe")
+    // excluded.add("pipeTo")
+    // excluded.add("redirectHandler")
+    excluded
+  }
 
-  def generate(wrappedModels: List[String], outPath: Path, model: ClassModel) = {
-    def newPackage(pkg: String) =
-      pkg.replace("io.vertx", "vertices")
-
-    def sanitiseName(name: String) =
-      name.replaceFirst("^type$", "`type`")
+  def generate(model: ClassModel): String = {
+    def sanitiseName(name: String) = name
+      .replaceFirst("^type$", "`type`")
+      .replaceFirst("^object$", "`object`")
 
     def scalaParamTypeName(typ: TypeInfo) = {
       if (typ.getKind == ClassKind.STRING)
@@ -26,12 +31,7 @@ object Codegen {
       else if (typ.getKind == ClassKind.BOXED_PRIMITIVE)
         typ.getName
       else {
-        val typeName = typ.getSimpleName.replace("<", "[").replace(">", "]")
-        val raw = if (typ.isInstanceOf[ParameterizedTypeInfo]) typ.getRaw else typ
-        if (wrappedModels.contains(raw.getName))
-          "Java" + typeName
-        else
-          typeName
+        typ.getSimpleName.replace("<", "[").replace(">", "]")
       }
     }
 
@@ -62,29 +62,39 @@ object Codegen {
           .replace(">", "]")
     }
 
-    def typeParameters(tparams: List[TypeParamInfo]) = {
+    def typeParameters(tparams: List[_ <: TypeParamInfo]) = {
       if (tparams.isEmpty)
         ""
-      else
-        tparams.map(_.getName).mkString("[", ", ", "]")
+      else {
+        "[" +
+        tparams.stream()
+          .map(_.getName)
+          .collect(Collectors.joining(", ")) +
+        "]"
+      }
+
     }
 
     def methodParameters(kind: MethodKind, params: List[ParamInfo]) = {
-      val parms = params.map { param =>
+      val parms = params.stream().map { param =>
         sanitiseName(param.getName) + ": " + scalaTypeName(param.getType)
       }
 
       if (kind == MethodKind.FUTURE)
-        parms.init.mkString(", ")
+        parms.limit(params.size - 1L).collect(Collectors.joining(", "))
       else
-        parms.mkString(", ")
+        parms.collect(Collectors.joining(", "))
     }
 
     def handlerParam(kind: MethodKind, params: List[ParamInfo], tparam: Boolean = false) = {
       if (kind != MethodKind.FUTURE)
         ""
       else {
-        val handlerParm = params.last.getType
+        val handlerParm = params
+          .stream()
+          .reduce((_, p) => p)
+          .get()
+          .getType
           .asInstanceOf[ParameterizedTypeInfo].getArg(0)
           .asInstanceOf[ParameterizedTypeInfo].getArg(0)
         if (tparam)
@@ -103,352 +113,126 @@ object Codegen {
     }
 
     def taskConversions(params: List[ParamInfo]) = {
-      val handlerParm = params.last.getType
+      val handlerParm = params
+        .stream()
+        .reduce((_, p) => p)
+        .get()
+        .getType
         .asInstanceOf[ParameterizedTypeInfo].getArg(0)
         .asInstanceOf[ParameterizedTypeInfo].getArg(0)
-
-      val rawHandlerParm =
-        if (handlerParm.isInstanceOf[ParameterizedTypeInfo])
-          handlerParm.getRaw
-        else
-          handlerParm
 
       if (handlerParm.getName == "java.lang.Void")
         ".map(_ => ())"
       else if (handlerParm.getKind == ClassKind.BOXED_PRIMITIVE)
         s".map(out => out: ${scalaTypeName(handlerParm)})"
-      else if (wrappedModels.contains(rawHandlerParm.getName))
-        s".map(out => ${scalaTypeName(handlerParm)}(out))"
       else ""
     }
-
-    def miscConversions(retType: TypeInfo) = {
-      val rawType = if (retType.isInstanceOf[ParameterizedTypeInfo]) retType.getRaw else retType
-
-      if (rawType.getName == ClassModel.VERTX_READ_STREAM) {
-
-        val typeArg = retType.asInstanceOf[ParameterizedTypeInfo].getArg(0)
-        val rawTypeArg = if (typeArg.isInstanceOf[ParameterizedTypeInfo]) typeArg.getRaw else typeArg
-
-        if (wrappedModels.contains(rawTypeArg.getName))
-          s".map(${typeArg.getSimpleName}.apply)"
-        else
-          ""
-
-      } else if (rawType.getName == ClassModel.VERTX_WRITE_STREAM) {
-
-        val typeArg = retType.asInstanceOf[ParameterizedTypeInfo].getArg(0)
-        val rawTypeArg = if (typeArg.isInstanceOf[ParameterizedTypeInfo]) typeArg.getRaw else typeArg
-
-        if (wrappedModels.contains(rawTypeArg.getName))
-          s".contramap(_.unwrap)"
-        else
-          ""
-
-      } else {
-        ""
-      }
-    }
-
-    def paramConversions(p: ParamInfo) = {
-      val paramType = p.getType
-
-      val rawParamType =
-        if (paramType.isInstanceOf[ParameterizedTypeInfo])
-          paramType.getRaw
-        else
-          paramType
-
-      def handlerConversions(argName: String, t: TypeInfo) = {
-        val raw =
-          if (t.isInstanceOf[ParameterizedTypeInfo])
-            t.getRaw
-          else
-            t
-
-        if (wrappedModels.contains(raw.getName))
-          s"${scalaTypeName(t)}(${argName})"
-        else if (t.getKind == ClassKind.BOXED_PRIMITIVE)
-          s"${argName}: ${scalaTypeName(t)}"
-        else
-          argName
-      }
-
-      if (paramType.getKind == ClassKind.HANDLER) {
-        val typeArg = paramType.asInstanceOf[ParameterizedTypeInfo].getArg(0)
-        if (typeArg.getKind != ClassKind.ASYNC_RESULT) {
-          val argName = "in"
-          val conversions = handlerConversions(argName, typeArg)
-          if (conversions == argName)
-            sanitiseName(p.getName)
-          else
-            s"""${sanitiseName(p.getName)}.contramap((${argName}: ${scalaParamTypeName(typeArg)}) => ${conversions})"""
-        }
-      } else {
-        sanitiseName(p.getName)
-      }
-    }
-
-    // val tokenMapper: java.util.function.Function[Token, Token] = token => {
-    //   token match {
-    //     case text: Token.Text =>
-    //       text
-    //     case lineBreak: Token.LineBreak =>
-    //       lineBreak
-    //     case inlineTag: Token.InlineTag =>
-    //       val tag = inlineTag.getTag
-    //       println(tag.getName)
-    //       println(tag.getValue)
-    //       if (tag.getName.trim == "code") {
-    //         println("Replacing code tag")
-    //         new Token.Text("`" + tag.getValue + "`")
-    //       } else if (tag.getName.trim == "link") {
-    //         println("Replacing link tag")
-    //         new Token.Text("[[" + tag.getValue + "]]")
-    //       } else {
-    //         inlineTag
-    //       }
-    //   }
-    // }
 
     def javaDocToScalaDoc(indent: Int)(doc: Doc): String = {
       val sep = System.lineSeparator
 
-      // val docString = new Doc(
-      //   doc.getFirstSentence.map(tokenMapper),
-      //   if (doc.getBody != null) doc.getBody.map(tokenMapper) else null,
-      //   doc.getBlockTags
-      // ).toString
+      val spaces = new String(new Array[Char](indent)).replace("\u0000", " ")
 
-      // println(docString)
-
-      val spaces = " " * indent
-
-      doc.toString
-        .split("\\r?\\n")
+      spaces + "/**" + sep +
+      Stream.of(doc.toString.split("\\r?\\n"): _*)
         .map(spaces  + " * " + _)
-        .mkString(
-          spaces + "/**" + sep,
-          sep,
-          sep + spaces + " */"
-        )
+        .collect(Collectors.joining(sep)) + sep + spaces + " */"
     }
 
-    def instanceMethods(methods: List[MethodInfo]) = methods.map { method =>
-      val tparams = method.getTypeParams.asScala.toList
+    def instanceMethods(methods: List[MethodInfo]) = methods.stream().map { method =>
+      val tparams = method.getTypeParams
       val tparamString = typeParameters(tparams)
-      val params = method.getParams.asScala.toList
+      val params = method.getParams
       val kind = method.getKind
       val handledParam = handlerParam(kind, params, tparam = true)
       val retType = returnType(kind, params, method.getReturnType)
 
       val scalaDoc = Option(method.getDoc)
-        .map(javaDocToScalaDoc(2))
+        .map(javaDocToScalaDoc(4))
         .getOrElse("")
 
-      val rawReturnType =
-        if (method.getReturnType.isInstanceOf[ParameterizedTypeInfo])
-          method.getReturnType.getRaw
-        else
-          method.getReturnType
+      val paramNames = params.stream()
+        .map(p => sanitiseName(p.getName))
+        .collect(Collectors.joining(", "))
 
-      if (kind == MethodKind.FUTURE) {
-        val paramNames = params.map(p => sanitiseName(p.getName)).mkString(", ")
-        s"""
-        |${scalaDoc}
-        |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
-        |    Task.handle[${handledParam}] { ${params.last.getName} =>
-        |      unwrap.${sanitiseName(method.getName)}(${paramNames})
-        |    }${taskConversions(params)}
-        """
-      } else if (wrappedModels.contains(rawReturnType.getName)) {
-        val paramNames = params.map(paramConversions).mkString(", ")
-        s"""
-        |${scalaDoc}
-        |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
-        |    ${scalaTypeName(method.getReturnType)}(unwrap.${sanitiseName(method.getName)}(${paramNames}))${miscConversions(method.getReturnType)}
-        """
-      } else {
-        val paramNames = params.map(paramConversions).mkString(", ")
-        s"""
-        |${scalaDoc}
-        |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
-        |    unwrap.${sanitiseName(method.getName)}(${paramNames})${miscConversions(method.getReturnType)}
-        """
-      }
-    }.map(_.trim.stripMargin).mkString(System.lineSeparator * 2)
+      val lastParamName = params.stream()
+        .reduce((_, p) => p)
+        .get()
+        .getName
 
-    def staticMethods(tpNme: String, methods: List[MethodInfo]) = methods.map { method =>
-      val tparams = method.getTypeParams.asScala.toList
+      s"""
+      |${scalaDoc}
+      |    def ${sanitiseName(method.getName + "L")}${tparamString}(${methodParameters(kind, params)}): ${retType} =
+      |      Task.handle[${handledParam}] { ${lastParamName} =>
+      |        target.${sanitiseName(method.getName)}(${paramNames})
+      |      }${taskConversions(params)}
+      """.trim.stripMargin
+    }.collect(Collectors.joining(System.lineSeparator + System.lineSeparator))
+
+    def staticMethods(tpNme: String, methods: List[MethodInfo]) = methods.stream().map { method =>
+      val tparams = method.getTypeParams
       val tparamString = typeParameters(tparams)
-      val params = method.getParams.asScala.toList
+      val params = method.getParams
       val kind = method.getKind
       val handledParam = handlerParam(kind, params, tparam = true)
       val retType = returnType(kind, params, method.getReturnType)
 
       val scalaDoc = Option(method.getDoc)
-        .map(javaDocToScalaDoc(2))
+        .map(javaDocToScalaDoc(4))
         .getOrElse("")
 
-      val rawReturnType =
-        if (method.getReturnType.isInstanceOf[ParameterizedTypeInfo])
-          method.getReturnType.getRaw
-        else
-          method.getReturnType
+      val paramNames = params.stream()
+        .map(p => sanitiseName(p.getName))
+        .map(_.toString)
+        .collect(Collectors.joining(", "))
 
-      if (kind == MethodKind.FUTURE) {
-        val paramNames = params.map(p => sanitiseName(p.getName)).mkString(", ")
-        s"""
-        |${scalaDoc}
-        |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
-        |    Task.handle[${handledParam}] { ${params.last.getName} =>
-        |      Java${tpNme}.${sanitiseName(method.getName)}(${paramNames})
-        |    }${taskConversions(params)}
-        """
-      } else if (wrappedModels.contains(rawReturnType.getName)) {
-        val paramNames = params.map(paramConversions).mkString(", ")
-        s"""
-        |${scalaDoc}
-        |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
-        |    ${method.getReturnType.getSimpleName}(Java${tpNme}.${sanitiseName(method.getName)}(${paramNames}))
-        """
-      } else {
-        val paramNames = params.map(paramConversions).mkString(", ")
-        s"""
-        |${scalaDoc}
-        |  def ${sanitiseName(method.getName)}${tparamString}(${methodParameters(kind, params)}): ${retType} =
-        |    Java${tpNme}.${sanitiseName(method.getName)}(${paramNames})
-        """
-      }
-    }.map(_.trim.stripMargin).mkString(System.lineSeparator * 2)
+      val lastParamName = params.stream()
+        .reduce((_, p) => p)
+        .get()
+        .getName
 
-    def imports(importedTypes: List[TypeInfo]) = {
-      importedTypes.foldLeft(Vector.empty[String]) {
-        case (imps, next) =>
-          val nm = next.getSimpleName
-          val pkg = Helper.getPackageName(next.getName)
-          val modelNm = model.getType.getSimpleName()
-          val modelPkg = model.getType.getPackageName
-          if (wrappedModels.contains(next.getName)) {
-            val wrappedType = pkg + s".{ ${nm} => Java${nm} }"
-            val newType = newPackage(pkg) + "." + next.getSimpleName
-            if (nm != modelNm && pkg != modelPkg)
-              imps :+ wrappedType :+ newType
-            else
-              imps :+ wrappedType
-          } else {
-            imps :+ next.getName
-          }
-      }.map("import " + _).sorted.mkString(System.lineSeparator)
-    }
+      s"""
+      |${scalaDoc}
+      |    def ${sanitiseName(method.getName + "L")}${tparamString}(${methodParameters(kind, params)}): ${retType} =
+      |      Task.handle[${handledParam}] { ${lastParamName} =>
+      |        ${tpNme}.${sanitiseName(method.getName)}(${paramNames})
+      |      }${taskConversions(params)}
+      """.trim.stripMargin
+    }.collect(Collectors.joining(System.lineSeparator + System.lineSeparator))
 
     val tp = model.getType
-    val importedTps = (tp :: model.getImportedTypes.asScala.toList).distinct
-    val pkgNme = tp.getPackageName
+
     val tpNme = tp.getSimpleName()
-    val tparams = model.getTypeParams.asScala.toList
+    val tparams = model.getTypeParams
     val anyVal = if (tparams.isEmpty) "extends AnyVal " else " "
     val tparamString = typeParameters(tparams)
 
-    if (Files.exists(outPath) && !Files.isDirectory(outPath))
-      throw new Exception(s"The output path ${outPath} is not a directory")
+    val instanceHandlers = model.getInstanceMethods.stream().filter { m =>
+      !m.isDeprecated && m.getKind == MethodKind.FUTURE
+    }.collect(Collectors.toList())
 
-    val dest = newPackage(pkgNme).split("\\.").foldLeft(outPath) {
-      case (path, segment) =>
-        path.resolve(segment)
-    }
+    val staticHandlers = model.getStaticMethods.stream().filter { m =>
+      !m.isDeprecated && m.getKind == MethodKind.FUTURE
+    }.collect(Collectors.toList())
 
-    if (!Files.exists(dest))
-      Files.createDirectories(dest)
-
-    val insMethods = model.getInstanceMethods.asScala.toList
-
-    val deduplicatedInsMethods = insMethods.filterNot { m =>
-      m.isDeprecated || excludedMethods.contains(m.getName)
-    }.filter { m =>
-      if (m.getKind == MethodKind.FUTURE)
-        true
-      else !insMethods.exists { om =>
-        m.getName == om.getName &&
-          om.getKind == MethodKind.FUTURE && {
-          val thisParams =
-            m.getParams.asScala.toList
-          val otherParams =
-            om.getParams.asScala.toList.init
-
-          thisParams.map(_.getType) == otherParams.map(_.getType)
-        }
-      }
-    }
-
-    val statMethods = model.getStaticMethods.asScala.toList
-
-    val deduplicatedStatMethods = statMethods.filterNot { m =>
-      m.isDeprecated || excludedMethods.contains(m.getName)
-    }.filter { m =>
-      if (m.getKind == MethodKind.FUTURE)
-        true
-      else !statMethods.exists { om =>
-        m.getName == om.getName && {
-          val thisParams =
-            m.getParams.asScala.toList
-          val otherParams =
-            if (om.getKind == MethodKind.FUTURE)
-              om.getParams.asScala.toList.init
-            else
-              om.getParams.asScala.toList
-
-          thisParams.map(_.getType) == otherParams.map(_.getType)
-        }
-      }
-    }
-
-    val implicits = {
-      val tparams = typeParameters(model.getTypeParams.asScala.toList)
-      val modelNm = model.getType.getSimpleName().capitalize
+    val classTemplate = Option(
       s"""
-      |  implicit def java${modelNm}ToVertices${modelNm}${tparams}(j: Java${modelNm}${tparams}): ${modelNm}${tparams} = apply(j)
-      |  implicit def vertices${modelNm}ToJava${modelNm}${tparams}(v: ${modelNm}${tparams}): Java${modelNm}${tparams} = v.unwrap
-      |""".trim.stripMargin
-    }
+      |  implicit class Vertx${tpNme}Ops${tparamString}(val target: ${tpNme}${tparamString}) ${anyVal}{
+      |${instanceMethods(instanceHandlers)}
+      |  }
+      |
+      """.trim.stripMargin
+    ).filterNot(_ => instanceHandlers.isEmpty).getOrElse("")
 
-    val scalaDoc = Option(model.getDoc)
-      .map(javaDocToScalaDoc(0))
-      .getOrElse("")
+    val objectTemplate = Option(
+      s"""
+      |  implicit class Vertx${tpNme}CompanionOps(val target: ${tpNme}.type) {
+      |${staticMethods(tpNme, staticHandlers)}
+      |  }
+      |
+      """.trim.stripMargin
+    ).filterNot(_ => staticHandlers.isEmpty).getOrElse("")
 
-    val template = {
-      val classTemplate =
-        s"""
-        |package vertices
-        |package ${newPackage(pkgNme).replace("vertices.", "")}
-        |
-        |import cats.implicits._
-        |${imports(importedTps)}
-        |import monix.eval.Task
-        |
-        |import scala.language.implicitConversions
-        |
-        |${scalaDoc}
-        |case class ${tpNme}${tparamString}(val unwrap: Java${tpNme}${tparamString}) ${anyVal}{
-        |${instanceMethods(deduplicatedInsMethods)}
-        |}
-        |
-        """.trim.stripMargin
-
-      val objectTemplate =
-        s"""
-        |object ${tpNme} {
-        |${implicits}
-        |${staticMethods(tpNme, statMethods)}
-        |}
-        |
-        """.trim.stripMargin
-
-      classTemplate + objectTemplate
-    }
-
-    val destFile = dest.resolve(tpNme + ".scala")
-
-    Files.write(destFile, template.getBytes(StandardCharsets.UTF_8))
+    classTemplate + System.lineSeparator + objectTemplate
   }
 }

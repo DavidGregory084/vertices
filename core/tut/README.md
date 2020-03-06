@@ -5,12 +5,13 @@
 
 ### Overview
 
-Vertices is a Scala library which provides wrapper APIs for [Eclipse Vert.x](http://vertx.io/) which allow the Vert.x framework to be used in a more functional style.
+Vertices is a Scala library that provides extension methods for [Eclipse Vert.x](http://vertx.io/) which allow the Vert.x framework to be used with the Scala library [Monix](https://monix.io) to write asynchronous programs in a functional style.
 
 ### Example
 
 ```tut:silent
 import cats.implicits._
+import io.vertx.core._
 import vertices._
 import vertices.core._
 import monix.execution.Scheduler
@@ -22,24 +23,19 @@ import scala.concurrent.duration._
 ```tut:book
 val vertx = Vertx.vertx
 
-// Create a task which registers a message handler at the address "echo"
 val echoMessagesExuberantly = vertx.eventBus.
   consumer[String]("echo").
-  unwrap.
   toObservable(vertx).
-  // It's very important that it replies enthusiastically
   foreachL(msg => msg.reply(msg.body.toUpperCase))
   
-// Kick that off in the background
 echoMessagesExuberantly.runToFuture
 
-// Send a message to the handler
 val sendAMessage = vertx.eventBus.
-  send[String]("echo", "hello").
+  requestL[String]("echo", "hello").
   foreachL(msg => println(msg.body))
 
 val demoTask =
-  sendAMessage *> vertx.close // Tidy up after ourselves - this will unregister the handler and shut down Vert.x
+  sendAMessage *> vertx.closeL
   
 Await.result(demoTask.runToFuture, 20.seconds)
 ```

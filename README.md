@@ -5,12 +5,13 @@
 
 ### Overview
 
-Vertices is a Scala library which provides wrapper APIs for [Eclipse Vert.x](http://vertx.io/) which allow the Vert.x framework to be used in a more functional style.
+Vertices is a Scala library that provides extension methods for [Eclipse Vert.x](http://vertx.io/) which allow the Vert.x framework to be used with the Scala library [Monix](https://monix.io) to write asynchronous programs in a functional style.
 
 ### Example
 
 ```scala
 import cats.implicits._
+import io.vertx.core._
 import vertices._
 import vertices.core._
 import monix.execution.Scheduler
@@ -21,30 +22,25 @@ import scala.concurrent.duration._
 
 ```scala
 val vertx = Vertx.vertx
-// vertx: vertices.core.Vertx = Vertx(io.vertx.core.impl.VertxImpl@35198da3)
+// vertx: io.vertx.core.Vertx = io.vertx.core.impl.VertxImpl@21f421b8
 
-// Create a task which registers a message handler at the address "echo"
 val echoMessagesExuberantly = vertx.eventBus.
   consumer[String]("echo").
-  unwrap.
   toObservable(vertx).
-  // It's very important that it replies enthusiastically
   foreachL(msg => msg.reply(msg.body.toUpperCase))
-// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$614850007
+// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$517432234
 
-// Kick that off in the background
 echoMessagesExuberantly.runToFuture
-// res2: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.eval.internal.TaskConnection$Impl$$anon$1@31137f4d)
+// res0: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.eval.internal.TaskConnection$Impl$$anon$1@199549a5)
 
-// Send a message to the handler
 val sendAMessage = vertx.eventBus.
-  send[String]("echo", "hello").
+  requestL[String]("echo", "hello").
   foreachL(msg => println(msg.body))
-// sendAMessage: monix.eval.Task[Unit] = Task.Map$135972201
+// sendAMessage: monix.eval.Task[Unit] = Task.Map$635208007
 
 val demoTask =
-  sendAMessage *> vertx.close // Tidy up after ourselves - this will unregister the handler and shut down Vert.x
-// demoTask: monix.eval.Task[Unit] = Task.FlatMap$742552199
+  sendAMessage *> vertx.closeL
+// demoTask: monix.eval.Task[Unit] = Task.FlatMap$164063646
 
 Await.result(demoTask.runToFuture, 20.seconds)
 // HELLO

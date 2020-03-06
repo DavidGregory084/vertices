@@ -1,7 +1,7 @@
 import scala.util.{ Success, Failure }
 
 import cats.{ Contravariant, Functor }
-import io.vertx.core.{ AsyncResult, Future => VertxFuture, Handler }
+import io.vertx.core.{ AsyncResult, Promise => VertxPromise, Handler, Vertx }
 import io.vertx.core.streams.{ Pump, ReadStream, WriteStream }
 import io.vertx.ext.reactivestreams.{ ReactiveReadStream, ReactiveWriteStream }
 import monix.execution.{ Callback, Cancelable }
@@ -9,7 +9,6 @@ import monix.eval.Task
 import monix.reactive.{ Observable, Observer }
 import scala.util.control.NonFatal
 import shapeless.=:!=
-import vertices.core.Vertx
 
 package object vertices {
   implicit class MonixTaskCompanionVertxOps(task: Task.type) {
@@ -34,20 +33,20 @@ package object vertices {
     }
   }
 
-  implicit class VertxVoidFutureOps[A <: Void](future: VertxFuture[A]) {
+  implicit class VertxVoidPromiseOps[A <: Void](promise: VertxPromise[A]) {
     def completeWith[B](task: Task[B]): Task[Unit] = {
       task.materialize.map {
-        case Success(_) => future.complete()
-        case Failure(error) => future.fail(error)
+        case Success(_) => promise.complete()
+        case Failure(error) => promise.fail(error)
       }
     }
   }
 
-  implicit class VertxFutureOps[A](future: VertxFuture[A])(implicit neq: A =:!= Void) {
+  implicit class VertxPromiseOps[A](promise: VertxPromise[A])(implicit neq: A =:!= Void) {
     def completeWith(task: Task[A]): Task[Unit] = {
       task.materialize.map {
-        case Success(result) => future.complete(result)
-        case Failure(error) => future.fail(error)
+        case Success(result) => promise.complete(result)
+        case Failure(error) => promise.fail(error)
       }
     }
   }
@@ -55,7 +54,7 @@ package object vertices {
   implicit class VertxReadStreamOps[A](readStream: ReadStream[A]) {
     def toObservable(vertx: Vertx): Observable[A] = {
       val startStream = Task.eval {
-        val writeStream = ReactiveWriteStream.writeStream[A](vertx.unwrap)
+        val writeStream = ReactiveWriteStream.writeStream[A](vertx)
         Pump.pump(readStream, writeStream).start()
         writeStream
       }
@@ -89,6 +88,8 @@ package object vertices {
       }
       def end(): Unit =
         writeStream.end()
+      def end(handler: Handler[AsyncResult[Void]]): Unit =
+        writeStream.end(handler)
       def exceptionHandler(exc: Handler[Throwable]): WriteStream[B] = {
         writeStream.exceptionHandler(exc)
         this
@@ -99,6 +100,10 @@ package object vertices {
       }
       def write(b: B): WriteStream[B] = {
         writeStream.write(f(b))
+        this
+      }
+      def write(b: B, handler: Handler[AsyncResult[Void]]) = {
+        writeStream.write(f(b), handler)
         this
       }
       def writeQueueFull(): Boolean =

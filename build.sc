@@ -1,102 +1,45 @@
-import mill._, api.IO, scalalib._, contrib.tut._, modules.Util
+import mill._
+import mill.api.IO
+import mill.scalalib._
+import mill.modules.Util
+
+import $ivy.`com.lihaoyi::mill-contrib-tut:0.6.1`
+import mill.contrib.tut._
+
+import $ivy.`io.github.davidgregory084::mill-tpolecat:0.1.2`
+import io.github.davidgregory084.TpolecatModule
 
 import ammonite.ops._
-import coursier.maven.MavenRepository
 
-trait ScalaSettingsModule extends ScalaModule {
-  override def repositories = {
-    super.repositories :+ MavenRepository("https://oss.sonatype.org/content/repositories/snapshots")
-  }
+trait ScalaSettingsModule extends TpolecatModule {
+  def scalaVersion = "2.13.1"
 
-  def scalaVersion = "2.12.8"
-
-  def scalacOptions = Seq(
-    // Common options
-    "-deprecation",                      // Emit warning and location for usages of deprecated APIs.
-    "-encoding", "utf-8",                // Specify character encoding used by source files.
-    "-explaintypes",                     // Explain type errors in more detail.
-    "-feature",                          // Emit warning and location for usages of features that should be imported explicitly.
-    "-language:existentials",            // Existential types (besides wildcard types) can be written and inferred
-    "-language:experimental.macros",     // Allow macro definition (besides implementation and application)
-    "-language:higherKinds",             // Allow higher-kinded types
-    "-language:implicitConversions",     // Allow definition of implicit functions called views
-    "-unchecked",                        // Enable additional warnings where generated code depends on assumptions.
-    "-Xcheckinit",                       // Wrap field accessors to throw an exception on uninitialized access.
-    "-Xfatal-warnings",                  // Fail the compilation if there are any warnings.
-    "-Xfuture",                          // Turn on future language features.
-    "-Yno-adapted-args",                 // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
-    "-Ywarn-dead-code",                  // Warn when dead code is identified.
-    "-Ywarn-inaccessible",               // Warn about inaccessible types in method signatures.
-    "-Ywarn-nullary-override",           // Warn when non-nullary `def f()' overrides nullary `def f'.
-    "-Ywarn-nullary-unit",               // Warn when nullary methods return Unit.
-    "-Ywarn-numeric-widen",              // Warn when numerics are widened.
-    // "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
-    // ^ too common in Java code
-    // scalaVersion >= 2.12
-    "-Xlint:constant",                   // Evaluation of a constant arithmetic expression results in an error.
-    // "-Ywarn-unused:implicits",           // Warn if an implicit parameter is unused.
-    // "-Ywarn-unused:imports",             // Warn if an import selector is not referenced.
-    // "-Ywarn-unused:locals",              // Warn if a local definition is unused.
-    // "-Ywarn-unused:params",              // Warn if a value parameter is unused.
-    // "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
-    // "-Ywarn-unused:privates",            // Warn if a private member is unused.
-    "-Ywarn-extra-implicit",             // Warn when more than one implicit parameter section is defined.
-    // scalaVersion >= 2.11
-    "-Xlint:adapted-args",               // Warn if an argument list is modified to match the receiver.
-    "-Xlint:by-name-right-associative",  // By-name parameter of right associative operator.
-    "-Xlint:delayedinit-select",         // Selecting member of DelayedInit.
-    "-Xlint:doc-detached",               // A Scaladoc comment appears to be detached from its element.
-    "-Xlint:inaccessible",               // Warn about inaccessible types in method signatures.
-    "-Xlint:infer-any",                  // Warn when a type argument is inferred to be `Any`.
-    "-Xlint:missing-interpolator",       // A string literal appears to be missing an interpolator id.
-    "-Xlint:nullary-override",           // Warn when non-nullary `def f()' overrides nullary `def f'.
-    "-Xlint:nullary-unit",               // Warn when nullary methods return Unit.
-    "-Xlint:option-implicit",            // Option.apply used implicit view.
-    "-Xlint:package-object-classes",     // Class or object defined in package object.
-    "-Xlint:poly-implicit-overload",     // Parameterized overloaded implicit methods are not visible as view bounds.
-    "-Xlint:private-shadow",             // A private field (or class parameter) shadows a superclass field.
-    "-Xlint:stars-align",                // Pattern sequence wildcard must align with sequence component.
-    "-Xlint:type-parameter-shadow",      // A local type parameter shadows a type already in scope.
-    "-Xlint:unsound-match",              // Pattern match may not be typesafe.
-    "-Ywarn-infer-any",                   // Warn when a type argument is inferred to be `Any`.
-    // Partial unification
-    "-Ypartial-unification"
-  )
-
-  def vertxVersion = T { "3.6.3" }
+  def vertxVersion = T { "3.8.5" }
 
   object test extends Tests {
-    def ivyDeps = Agg(ivy"org.scalatest::scalatest:3.0.5", ivy"org.scalacheck::scalacheck:1.14.0")
+    def ivyDeps = Agg(
+      ivy"org.scalatest::scalatest:3.0.8",
+      ivy"org.scalacheck::scalacheck:1.14.1"
+    )
     def testFrameworks = Seq("org.scalatest.tools.Framework")
   }
 }
 
 object codegen extends ScalaSettingsModule {
   def vertxDocgenVersion = T { "0.9.2" }
-  def nettyVersion = T { "4.1.19.Final" }
-  def jacksonVersion = T { "2.9.5" }
+  def nettyVersion = T { "4.1.42.Final" }
+  def jacksonVersion = T { "2.9.9" }
   def log4jVersion = T { "1.2.17" }
   def slf4jVersion = T { "1.7.21" }
   def log4j2Version = T { "2.8.2" }
+
+  def scalacOptions = T { super.scalacOptions() :+ "-Yno-imports" }
 
   def ivyDeps = T {
     val vertxVer = vertxVersion()
     val nettyVer = nettyVersion()
     Agg(
-      ivy"org.scala-lang.modules::scala-java8-compat:0.9.0",
-      ivy"io.vertx:vertx-codegen:${vertxVersion()}",
-      ivy"io.vertx:vertx-docgen:${vertxDocgenVersion()}",
-      ivy"io.netty:netty-common:${nettyVer}",
-      ivy"io.netty:netty-buffer:${nettyVer}",
-      ivy"io.netty:netty-transport:${nettyVer}",
-      ivy"io.netty:netty-handler:${nettyVer}",
-      ivy"io.netty:netty-handler-proxy:${nettyVer}",
-      ivy"io.netty:netty-codec-http:${nettyVer}",
-      ivy"io.netty:netty-codec-http2:${nettyVer}",
-      ivy"io.netty:netty-resolver:${nettyVer}",
-      ivy"io.netty:netty-resolver-dns:${nettyVer}",
-      ivy"io.netty:netty-transport-native-epoll:${nettyVer}",
-      ivy"io.netty:netty-transport-native-kqueue:${nettyVer}",
+      ivy"io.vertx:vertx-codegen:${vertxVer}",
       ivy"org.slf4j:slf4j-api:${slf4jVersion()}",
       ivy"log4j:log4j:${log4jVersion()}",
       ivy"org.apache.logging.log4j:log4j-api:${log4j2Version()}",
@@ -115,7 +58,18 @@ trait VertxCodegen extends ScalaSettingsModule {
     }
   }
 
-  def vertxSourceJars = T {
+  def scalacOptions = T {
+    // It's impractical to use -Xfatal-warnings on the generated code;
+    // we can't control whether the Vert.x API uses deprecated types in its methods
+    super.scalacOptions()
+      .filterNot(Set(
+        "-Wvalue-discard",
+        "-Wunused:imports",
+        "-Xfatal-warnings"
+      ))
+  }
+
+  def vertxSourceJars = T.sources {
     Lib.resolveDependencies(
       repositories,
       Lib.depToDependencyJava(_),
@@ -125,12 +79,12 @@ trait VertxCodegen extends ScalaSettingsModule {
       p.path.last.startsWith("vertx") &&
       p.path.last.endsWith(s"-sources.jar") &&
       vertxModules().exists(p.path.last.contains)
-    }.map(_.path))
+    }.toSeq)
   }
 
   def vertxSources = T.sources {
     vertxSourceJars().foreach { path =>
-      IO.unpackZip(path)(T.ctx().dest)
+      IO.unpackZip(path.path)(T.ctx().dest)
     }
 
     rm(T.ctx().dest / 'unpacked / 'io / 'vertx / 'groovy)
@@ -149,7 +103,7 @@ trait VertxCodegen extends ScalaSettingsModule {
       for {
         root <- vertxSources()
         if exists(root.path)
-        path <- (if (root.path.isDir) ls.rec(root.path) else Seq(root.path))
+        path <- if (root.path.isDir) ls.rec(root.path) else Seq(root.path)
         if path.isFile && path.ext == "java"
       } yield path
     )
@@ -160,15 +114,20 @@ trait VertxCodegen extends ScalaSettingsModule {
       mkdir(generatedSourcesPath())
 
     val processorOptions = Seq(
+      "-proc:only",
       "-processor", "vertices.codegen.CodegenProcessor",
+      s"-Acodegen.module.name=${millModuleSegments.parts.last}",
       s"-Acodegen.output.dir=${generatedSourcesPath().toIO.toString}"
     )
+
+    val classpath = Agg.from(codegen.runClasspath() ++ compileClasspath())
 
     zincWorker.worker().compileJava(
       upstreamCompileOutput(),
       javaSources,
-      codegen.runClasspath().map(_.path) ++ compileClasspath().map(_.path),
-      javacOptions() ++ processorOptions
+      classpath.map(_.path),
+      javacOptions() ++ processorOptions,
+      T.reporter.apply(hashCode)
     )
 
     Seq(PathRef(generatedSourcesPath()))
@@ -177,8 +136,9 @@ trait VertxCodegen extends ScalaSettingsModule {
   override def generatedSources = T { super.generatedSources() ++ generate() }
 }
 
+// Core ------------------------------------------------------
 object core extends VertxCodegen with TutModule {
-  def tutVersion = "0.6.10"
+  def tutVersion = "0.6.13"
   def tutTargetDirectory = millSourcePath / up
 
   def vertxModules = Agg("vertx-core")
@@ -186,8 +146,115 @@ object core extends VertxCodegen with TutModule {
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-core:${vertxVersion()}",
     ivy"io.vertx:vertx-reactive-streams:${vertxVersion()}",
-    ivy"io.monix::monix:3.0.0-RC2",
+    ivy"io.monix::monix:3.0.0",
     ivy"com.chuusai::shapeless:2.3.3"
+  )
+}
+
+// Web -------------------------------------------------------
+object web extends VertxCodegen {
+  def moduleDeps = Seq(core, auth)
+
+  def vertxModules = Agg("vertx-web")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-web:${vertxVersion()}",
+  )
+}
+
+object web_client extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-web-client")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-web-client:${vertxVersion()}",
+  )
+}
+
+object web_api_contract extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-web-api-contract")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-web-api-contract:${vertxVersion()}",
+  )
+}
+
+// Data access ----------------------------------------------
+object mongo extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-mongo-client")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-mongo-client:${vertxVersion()}",
+  )
+}
+
+object redis_client extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-redis-client")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-redis-client:${vertxVersion()}",
+  )
+}
+
+object cassandra extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-cassandra-client")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-cassandra-client:${vertxVersion()}",
+  )
+}
+
+object sql extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-sql-common")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-sql-common:${vertxVersion()}",
+  )
+}
+
+object jdbc extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-jdbc-client")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-jdbc-client:${vertxVersion()}",
+  )
+}
+
+// Microservices --------------------------------------------
+object servicediscovery extends VertxCodegen {
+  def moduleDeps = Seq(
+    core,
+    web, web_client,
+    jdbc, mongo, redis_client
+  )
+
+  def vertxModules = Agg("vertx-service-discovery")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-service-discovery:${vertxVersion()}",
+  )
+}
+
+object circuitbreaker extends VertxCodegen {
+  def moduleDeps = Seq(core, web)
+
+  def vertxModules = Agg("vertx-circuit-breaker")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-circuit-breaker:${vertxVersion()}",
   )
 }
 
@@ -201,8 +268,19 @@ object config extends VertxCodegen {
   )
 }
 
-object auth extends VertxCodegen {
+object mqtt extends VertxCodegen {
   def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-mqtt")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-mqtt:${vertxVersion()}",
+  )
+}
+
+// Authentication and Authorisation --------------------------
+object auth extends VertxCodegen {
+  def moduleDeps = Seq(core, auth_oauth2)
 
   def vertxModules = Agg("vertx-auth-common")
 
@@ -210,19 +288,109 @@ object auth extends VertxCodegen {
     ivy"io.vertx:vertx-auth-common:${vertxVersion()}",
     ivy"io.vertx:vertx-auth-htdigest:${vertxVersion()}",
     ivy"io.vertx:vertx-auth-jwt:${vertxVersion()}",
-    ivy"io.vertx:vertx-auth-oauth2:${vertxVersion()}"
   )
 }
 
-object web extends VertxCodegen {
-  def moduleDeps = Seq(core, auth)
+object auth_oauth2 extends VertxCodegen {
+  def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-web")
+  def vertxModules = Agg("vertx-auth-oauth2")
 
   def ivyDeps = Agg(
-    ivy"io.vertx:vertx-core:${vertxVersion()}",
-    ivy"io.vertx:vertx-web:${vertxVersion()}",
-    ivy"io.vertx:vertx-web-common:${vertxVersion()}",
-    ivy"io.vertx:vertx-bridge-common:${vertxVersion()}"
+    ivy"io.vertx:vertx-auth-oauth2:${vertxVersion()}",
+  )
+}
+
+object auth_mongo extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-auth-mongo")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-auth-mongo:${vertxVersion()}",
+  )
+}
+
+// Messaging -------------------------------------------------
+object stomp extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-stomp")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-stomp:${vertxVersion()}",
+  )
+}
+
+object rabbitmq extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-rabbitmq-client")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-rabbitmq-client:${vertxVersion()}",
+  )
+}
+
+object amqpbridge extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-amqp-bridge")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-amqp-bridge:${vertxVersion()}",
+  )
+}
+
+// Integration -----------------------------------------------
+object kafka_client extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-kafka-client")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-kafka-client:${vertxVersion()}",
+  )
+}
+
+object mail extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-mail-client")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-mail-client:${vertxVersion()}",
+  )
+}
+
+object consul extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-consul-client")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-consul-client:${vertxVersion()}",
+  )
+}
+
+// Event Bus Bridge ------------------------------------------
+object eventbus_bridge_tcp extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-tcp-eventbus-bridge")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-tcp-eventbus-bridge:${vertxVersion()}"
+  )
+}
+
+// Devops ----------------------------------------------------
+object healthchecks extends VertxCodegen {
+  def moduleDeps = Seq(core)
+
+  def vertxModules = Agg("vertx-health-check")
+
+  def ivyDeps = Agg(
+    ivy"io.vertx:vertx-health-check:${vertxVersion()}"
   )
 }
