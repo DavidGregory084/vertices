@@ -13,7 +13,7 @@ import io.github.davidgregory084.TpolecatModule
 import ammonite.ops._
 
 trait PublishSettingsModule extends PublishModule {
-  def publishVersion = "0.1.0"
+  def publishVersion = "0.1.1-SNAPSHOT"
 
   def pomSettings = PomSettings(
     description = artifactName(),
