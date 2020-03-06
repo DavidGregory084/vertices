@@ -1,6 +1,7 @@
 import mill._
 import mill.api.IO
 import mill.scalalib._
+import mill.scalalib.publish._
 import mill.modules.Util
 
 import $ivy.`com.lihaoyi::mill-contrib-tut:0.6.1`
@@ -10,6 +11,19 @@ import $ivy.`io.github.davidgregory084::mill-tpolecat:0.1.2`
 import io.github.davidgregory084.TpolecatModule
 
 import ammonite.ops._
+
+trait PublishSettingsModule extends PublishModule {
+  def publishVersion = "0.1.0"
+
+  def pomSettings = PomSettings(
+    description = artifactName(),
+    organization = "io.github.davidgregory084",
+    url = "https://github.com/DavidGregory084/vertices",
+    licenses = Seq(License.`Apache-2.0`),
+    versionControl = VersionControl.github("DavidGregory084", "vertices"),
+    developers = Seq(Developer("DavidGregory084", "David Gregory", "https://github.com/DavidGregory084"))
+  )
+}
 
 trait ScalaSettingsModule extends TpolecatModule {
   def scalaVersion = "2.13.1"
@@ -48,14 +62,15 @@ object codegen extends ScalaSettingsModule {
   }
 }
 
-trait VertxCodegen extends ScalaSettingsModule {
-  def vertxModules: T[Agg[String]]
+trait VertxCodegen extends PublishSettingsModule with ScalaSettingsModule {
+  def vertxModule: T[String]
+
+  def artifactName = T { vertxModule().replaceFirst("vertx", "vertices") }
 
   def vertxSourceDeps = T {
+    val vertxMod = vertxModule()
     val vertxVer = vertxVersion()
-    vertxModules().map { id =>
-      ivy"io.vertx:${id}:${vertxVer}"
-    }
+    Agg(ivy"io.vertx:${vertxMod}:${vertxVer}")
   }
 
   def scalacOptions = T {
@@ -78,7 +93,7 @@ trait VertxCodegen extends ScalaSettingsModule {
     ).map(_.filter { p =>
       p.path.last.startsWith("vertx") &&
       p.path.last.endsWith(s"-sources.jar") &&
-      vertxModules().exists(p.path.last.contains)
+      p.path.last.contains(vertxModule())
     }.toSeq)
   }
 
@@ -136,17 +151,34 @@ trait VertxCodegen extends ScalaSettingsModule {
   override def generatedSources = T { super.generatedSources() ++ generate() }
 }
 
+// The modules are listed below in the categories described on the
+// Vert.x documentation page https://vertx.io/docs/
+
+// The naming of the modules is designed so that the generated package names
+// resemble the package names used in the original code.
+//
+// In the code for a module `_` is replaced by `.` in the generated packages,
+// so that `eventbus_bridge_tcp` code is in the `vertices.eventbus.bridge.tcp` package.
+
 // Core ------------------------------------------------------
 object core extends VertxCodegen with TutModule {
   def tutVersion = "0.6.13"
   def tutTargetDirectory = millSourcePath / up
 
-  def vertxModules = Agg("vertx-core")
+  def vertxModule = "vertx-core"
+
+  // If I upgrade either of these I get a BootstrapMethodError from Tut.
+  // Ominous...
+  def catsVersion = T { "2.0.0" }
+  def monixVersion = T { "3.0.0" }
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-core:${vertxVersion()}",
     ivy"io.vertx:vertx-reactive-streams:${vertxVersion()}",
-    ivy"io.monix::monix:3.0.0",
+    ivy"org.typelevel::cats-core:${catsVersion()}",
+    ivy"io.monix::monix-eval:${monixVersion()}",
+    ivy"io.monix::monix-execution:${monixVersion()}",
+    ivy"io.monix::monix-reactive:${monixVersion()}",
     ivy"com.chuusai::shapeless:2.3.3"
   )
 }
@@ -155,7 +187,7 @@ object core extends VertxCodegen with TutModule {
 object web extends VertxCodegen {
   def moduleDeps = Seq(core, auth)
 
-  def vertxModules = Agg("vertx-web")
+  def vertxModule = "vertx-web"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-web:${vertxVersion()}",
@@ -165,7 +197,7 @@ object web extends VertxCodegen {
 object web_client extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-web-client")
+  def vertxModule = "vertx-web-client"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-web-client:${vertxVersion()}",
@@ -175,7 +207,7 @@ object web_client extends VertxCodegen {
 object web_api_contract extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-web-api-contract")
+  def vertxModule = "vertx-web-api-contract"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-web-api-contract:${vertxVersion()}",
@@ -186,7 +218,7 @@ object web_api_contract extends VertxCodegen {
 object mongo extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-mongo-client")
+  def vertxModule = "vertx-mongo-client"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-mongo-client:${vertxVersion()}",
@@ -196,7 +228,7 @@ object mongo extends VertxCodegen {
 object redis_client extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-redis-client")
+  def vertxModule = "vertx-redis-client"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-redis-client:${vertxVersion()}",
@@ -206,7 +238,7 @@ object redis_client extends VertxCodegen {
 object cassandra extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-cassandra-client")
+  def vertxModule = "vertx-cassandra-client"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-cassandra-client:${vertxVersion()}",
@@ -216,7 +248,7 @@ object cassandra extends VertxCodegen {
 object sql extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-sql-common")
+  def vertxModule = "vertx-sql-common"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-sql-common:${vertxVersion()}",
@@ -226,7 +258,7 @@ object sql extends VertxCodegen {
 object jdbc extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-jdbc-client")
+  def vertxModule = "vertx-jdbc-client"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-jdbc-client:${vertxVersion()}",
@@ -241,7 +273,7 @@ object servicediscovery extends VertxCodegen {
     jdbc, mongo, redis_client
   )
 
-  def vertxModules = Agg("vertx-service-discovery")
+  def vertxModule = "vertx-service-discovery"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-service-discovery:${vertxVersion()}",
@@ -251,7 +283,7 @@ object servicediscovery extends VertxCodegen {
 object circuitbreaker extends VertxCodegen {
   def moduleDeps = Seq(core, web)
 
-  def vertxModules = Agg("vertx-circuit-breaker")
+  def vertxModule = "vertx-circuit-breaker"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-circuit-breaker:${vertxVersion()}",
@@ -261,17 +293,18 @@ object circuitbreaker extends VertxCodegen {
 object config extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-config")
+  def vertxModule = "vertx-config"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-config:${vertxVersion()}",
   )
 }
 
+// MQTT ------------------------------------------------------
 object mqtt extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-mqtt")
+  def vertxModule = "vertx-mqtt"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-mqtt:${vertxVersion()}",
@@ -282,7 +315,7 @@ object mqtt extends VertxCodegen {
 object auth extends VertxCodegen {
   def moduleDeps = Seq(core, auth_oauth2)
 
-  def vertxModules = Agg("vertx-auth-common")
+  def vertxModule = "vertx-auth-common"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-auth-common:${vertxVersion()}",
@@ -294,7 +327,7 @@ object auth extends VertxCodegen {
 object auth_oauth2 extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-auth-oauth2")
+  def vertxModule = "vertx-auth-oauth2"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-auth-oauth2:${vertxVersion()}",
@@ -304,7 +337,7 @@ object auth_oauth2 extends VertxCodegen {
 object auth_mongo extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-auth-mongo")
+  def vertxModule = "vertx-auth-mongo"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-auth-mongo:${vertxVersion()}",
@@ -315,7 +348,7 @@ object auth_mongo extends VertxCodegen {
 object stomp extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-stomp")
+  def vertxModule = "vertx-stomp"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-stomp:${vertxVersion()}",
@@ -325,7 +358,7 @@ object stomp extends VertxCodegen {
 object rabbitmq extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-rabbitmq-client")
+  def vertxModule = "vertx-rabbitmq-client"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-rabbitmq-client:${vertxVersion()}",
@@ -335,7 +368,7 @@ object rabbitmq extends VertxCodegen {
 object amqpbridge extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-amqp-bridge")
+  def vertxModule = "vertx-amqp-bridge"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-amqp-bridge:${vertxVersion()}",
@@ -346,7 +379,7 @@ object amqpbridge extends VertxCodegen {
 object kafka_client extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-kafka-client")
+  def vertxModule = "vertx-kafka-client"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-kafka-client:${vertxVersion()}",
@@ -356,7 +389,7 @@ object kafka_client extends VertxCodegen {
 object mail extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-mail-client")
+  def vertxModule = "vertx-mail-client"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-mail-client:${vertxVersion()}",
@@ -366,7 +399,7 @@ object mail extends VertxCodegen {
 object consul extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-consul-client")
+  def vertxModule = "vertx-consul-client"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-consul-client:${vertxVersion()}",
@@ -377,7 +410,7 @@ object consul extends VertxCodegen {
 object eventbus_bridge_tcp extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-tcp-eventbus-bridge")
+  def vertxModule = "vertx-tcp-eventbus-bridge"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-tcp-eventbus-bridge:${vertxVersion()}"
@@ -388,7 +421,7 @@ object eventbus_bridge_tcp extends VertxCodegen {
 object healthchecks extends VertxCodegen {
   def moduleDeps = Seq(core)
 
-  def vertxModules = Agg("vertx-health-check")
+  def vertxModule = "vertx-health-check"
 
   def ivyDeps = Agg(
     ivy"io.vertx:vertx-health-check:${vertxVersion()}"
