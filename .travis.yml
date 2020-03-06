@@ -7,8 +7,8 @@ jdk:
   - openjdk11
 
 script:
-  - mill _.compile
-  - mill core.tut
+  - ./mill _.compile
+  - ./mill core.tut
 
 cache:
   directories:
