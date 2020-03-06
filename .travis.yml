@@ -12,4 +12,4 @@ script:
 
 cache:
   directories:
-  - $HOME/.coursier
+  - $HOME/.cache/coursier
