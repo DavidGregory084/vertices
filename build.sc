@@ -427,3 +427,33 @@ object healthchecks extends VertxCodegen {
     ivy"io.vertx:vertx-health-check:${vertxVersion()}"
   )
 }
+
+// Everything ------------------------------------------------
+object vertices extends PublishSettingsModule with ScalaSettingsModule {
+  def moduleDeps = Seq(
+    core,
+    web,
+    web_client,
+    web_api_contract,
+    mongo,
+    redis_client,
+    cassandra,
+    sql,
+    jdbc,
+    servicediscovery,
+    circuitbreaker,
+    config,
+    mqtt,
+    auth,
+    auth_oauth2,
+    auth_mongo,
+    stomp,
+    rabbitmq,
+    amqpbridge,
+    kafka_client,
+    mail,
+    consul,
+    eventbus_bridge_tcp,
+    healthchecks
+  )
+}
