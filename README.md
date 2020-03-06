@@ -48,7 +48,7 @@ Await.result(demoTask.runToFuture, 20.seconds)
 
 ### Conduct
 
-Contributors are expected to follow the [Typelevel Code of Conduct](http://typelevel.org/conduct.html) while participating on Github and any other venues associated with the project. 
+Contributors are expected to follow the [Scala Code of Conduct](https://www.scala-lang.org/conduct/) while participating on Github and any other venues associated with the project. 
 
 ### Acknowledgements
 
