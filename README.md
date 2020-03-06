@@ -2,6 +2,7 @@
 
 [![Build Status](https://api.travis-ci.org/DavidGregory084/vertices.svg)](https://travis-ci.org/DavidGregory084/vertices)
 [![License](https://img.shields.io/github/license/DavidGregory084/vertices.svg)](https://opensource.org/licenses/Apache-2.0)
+[![javadoc](https://javadoc.io/badge2/io.github.davidgregory084/vertices-core_2.13/javadoc.svg)](https://javadoc.io/doc/io.github.davidgregory084/vertices-core_2.13) 
 
 ### Overview
 
