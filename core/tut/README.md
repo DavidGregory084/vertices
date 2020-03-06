@@ -183,9 +183,6 @@ ivy"io.github.davidgregory084::vertices-tcp-eventbus-bridge:${verticesVersion()}
 // Devops
 ivy"io.github.davidgregory084::vertices-health-check:${verticesVersion()}"
 ```
-
-### Example
-
 ### FAQ
 
 Q. Why is `<some module>` missing?
