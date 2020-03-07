@@ -10,11 +10,11 @@ Vertices is a Scala library that provides extension methods for the [Eclipse Ver
 
 The basic idea of this library is to provide replacements for Vert.x methods which accept callbacks. This makes it easer to use the diverse functionality provided by the Vert.x libraries while writing idiomatic Scala code.
 
-The new methods make use of the `Task` type from the excellent [Monix](https://monix.io) library.
+The new methods make use of the [Task](https://monix.io/api/3.1/monix/eval/Task.html) type from the excellent [Monix](https://monix.io) library.
 
 ### Example
 
-The Vert.x library provides a `SharedData` object which we can use to store and retrieve named `AsyncMap` objects.
+The Vert.x library provides a [SharedData](https://vertx.io/docs/apidocs/io/vertx/core/shareddata/SharedData.html) object which we can use to store and retrieve named [AsyncMap](https://vertx.io/docs/apidocs/io/vertx/core/shareddata/AsyncMap.html) objects.
 
 Using the original Vert.x APIs we would write code to access this data like so:
 
@@ -73,7 +73,7 @@ val resultTask = for {
 Await.result(resultTask.runToFuture, 20.seconds)
 ```
 
-We can also convert Vert.x `ReadStream` objects to Monix `Observable`s.
+We can also convert Vert.x [ReadStream](https://vertx.io/docs/apidocs/io/vertx/core/streams/ReadStream.html) objects to Monix [Observable](https://monix.io/api/3.1/monix/reactive/Observable.html)s.
 
 The example below uses the Vert.x Event Bus to define an event bus consumer that echoes messages back to the sender in all-caps:
 
@@ -188,7 +188,7 @@ ivy"io.github.davidgregory084::vertices-health-check:${verticesVersion()}"
 ```
 ### Cheat Sheet
 
-The naming strategy for extension methods follows that of [Monix](https://monix.io): the new methods which return `Task` are suffixed with the letter `L` since the underlying task is not executed right away (in other words that it is "lazy").
+The naming strategy for extension methods follows that of [Monix](https://monix.io): the new methods which return [Task](https://monix.io/api/3.1/monix/eval/Task.html) are suffixed with the letter `L` since the underlying task is not executed right away (in other words that it is "lazy").
 
 ```scala
 // Instead of the io.vertx.core.file.AsyncFile method
