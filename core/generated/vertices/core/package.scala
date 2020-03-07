@@ -2588,7 +2588,7 @@ package object core {
       }
   }
 
-  implicit class VertxVertxCompanionOps(val target: Vertx.type) {
+  object VertxFunctions {
     /**
      *  Creates a clustered instance using the specified options.
      *  <p>

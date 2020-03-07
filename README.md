@@ -20,19 +20,18 @@ Using the original Vert.x APIs we would write code to access this data like so:
 
 ```scala
 import io.vertx.core._
-import vertices._
-import vertices.core._
-import monix.execution.Scheduler.Implicits.global
 import scala.concurrent.{ Await, Promise }
 import scala.concurrent.duration._
 ```
-
 ```scala
+val vertx = Vertx.vertx
+// vertx: io.vertx.core.Vertx = io.vertx.core.impl.VertxImpl@69ffdaa8
+
 val resultPromise = Promise[String]()
 // resultPromise: scala.concurrent.Promise[String] = Future(<not completed>)
 
-val sharedData = Vertx.vertx.sharedData
-// sharedData: io.vertx.core.shareddata.SharedData = io.vertx.core.shareddata.impl.SharedDataImpl@575c23f1
+val sharedData = vertx.sharedData
+// sharedData: io.vertx.core.shareddata.SharedData = io.vertx.core.shareddata.impl.SharedDataImpl@70439c3
 
 sharedData.getAsyncMap[String, String]("example", getMapResult => {
   if (getMapResult.succeeded) {
@@ -63,13 +62,22 @@ As you can see this is a perfect demonstration of *callback hell*.
 
 Using this library we can write the code above as follows:
 
+
 ```scala
+import monix.execution.Scheduler
+import vertices._
+import vertices.core._
+```
+```scala
+implicit val scheduler: Scheduler = new VertxScheduler(vertx)
+// scheduler: monix.execution.Scheduler = vertices.core.VertxScheduler@4131f6db
+
 val resultTask = for {
   asyncMap <- sharedData.getAsyncMapL[String, String]("example")
   _        <- asyncMap.putL("key", "value")
   value    <- asyncMap.getL("key")
 } yield value
-// resultTask: monix.eval.Task[String] = Task.FlatMap$598978484
+// resultTask: monix.eval.Task[String] = Task.FlatMap$482031947
 
 Await.result(resultTask.runToFuture, 20.seconds)
 // res2: String = value
@@ -83,28 +91,25 @@ The example below uses the Vert.x Event Bus to define an event bus consumer that
 import cats.syntax.apply._
 // import cats.syntax.apply._
 
-val vertx = Vertx.vertx
-// vertx: io.vertx.core.Vertx = io.vertx.core.impl.VertxImpl@4e0a5606
-
 val echoMessagesExuberantly = vertx.eventBus.
   consumer[String]("echo").
   toObservable(vertx).
   foreachL(msg => msg.reply(msg.body.toUpperCase))
-// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$92551864
+// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$1711309601
 
 echoMessagesExuberantly.runToFuture
-// res3: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.eval.internal.TaskConnection$Impl$$anon$1@3808bdfc)
+// res3: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.eval.internal.TaskConnection$Impl$$anon$1@18e7b33e)
 
 val sendAMessage = vertx.eventBus.
   requestL[String]("echo", "hello").
   foreachL(msg => println(msg.body))
-// sendAMessage: monix.eval.Task[Unit] = Task.Map$1903952121
+// sendAMessage: monix.eval.Task[Unit] = Task.Map$1632477220
 
 val demoTask =
   sendAMessage *> vertx.closeL
-// demoTask: monix.eval.Task[Unit] = Task.FlatMap$744172898
+// demoTask: monix.eval.Task[Unit] = Task.FlatMap$1500277822
 
-Await.result(demoTask.runToFuture, 20.seconds)
+Await.result(demoTask.runToFuture(Scheduler.global), 20.seconds)
 // HELLO
 ```
 

@@ -35,7 +35,7 @@ import java.util.function.Function
 
 package object servicediscovery {
 
-  implicit class VertxJDBCDataSourceCompanionOps(val target: JDBCDataSource.type) {
+  object JDBCDataSourceFunctions {
     /**
      *  Convenient method that looks for a JDBC datasource source and provides the configured {@link io.vertx.ext.jdbc.JDBCClient}. The
      *  async result is marked as failed is there are no matching services, or if the lookup fails.
@@ -88,7 +88,7 @@ package object servicediscovery {
   }
 
 
-  implicit class VertxHttpEndpointCompanionOps(val target: HttpEndpoint.type) {
+  object HttpEndpointFunctions {
     /**
      *  Convenient method that looks for a HTTP endpoint and provides the configured {@link HttpClient}. The async result
      *  is marked as failed is there are no matching services, or if the lookup fails.
@@ -195,7 +195,7 @@ package object servicediscovery {
   }
 
 
-  implicit class VertxMessageSourceCompanionOps(val target: MessageSource.type) {
+  object MessageSourceFunctions {
     /**
      *  Convenient method that looks for a message source and provides the configured {@link MessageConsumer}. The
      *  async result is marked as failed is there are no matching services, or if the lookup fails.
@@ -224,7 +224,7 @@ package object servicediscovery {
   }
 
 
-  implicit class VertxRedisDataSourceCompanionOps(val target: RedisDataSource.type) {
+  object RedisDataSourceFunctions {
     /**
      *  Convenient method that looks for a Redis data source and provides the configured {@link io.vertx.redis.RedisClient}.
      *  The async result is marked as failed is there are no matching services, or if the lookup fails.
@@ -447,7 +447,7 @@ package object servicediscovery {
 
 
 
-  implicit class VertxMongoDataSourceCompanionOps(val target: MongoDataSource.type) {
+  object MongoDataSourceFunctions {
     /**
      *  Convenient method that looks for a Mongo datasource source and provides the configured {@link io.vertx.ext.mongo.MongoClient}. The
      *  async result is marked as failed is there are no matching services, or if the lookup fails.

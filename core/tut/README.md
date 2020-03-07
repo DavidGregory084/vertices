@@ -20,16 +20,13 @@ Using the original Vert.x APIs we would write code to access this data like so:
 
 ```tut:silent
 import io.vertx.core._
-import vertices._
-import vertices.core._
-import monix.execution.Scheduler.Implicits.global
 import scala.concurrent.{ Await, Promise }
 import scala.concurrent.duration._
 ```
-
 ```tut:book
+val vertx = Vertx.vertx
 val resultPromise = Promise[String]()
-val sharedData = Vertx.vertx.sharedData
+val sharedData = vertx.sharedData
 
 sharedData.getAsyncMap[String, String]("example", getMapResult => {
   if (getMapResult.succeeded) {
@@ -59,7 +56,14 @@ As you can see this is a perfect demonstration of *callback hell*.
 
 Using this library we can write the code above as follows:
 
+```tut:silent
+import monix.execution.Scheduler
+import vertices._
+import vertices.core._
+```
 ```tut:book
+implicit val scheduler: Scheduler = new VertxScheduler(vertx)
+
 val resultTask = for {
   asyncMap <- sharedData.getAsyncMapL[String, String]("example")
   _        <- asyncMap.putL("key", "value")
@@ -76,8 +80,6 @@ The example below uses the Vert.x Event Bus to define an event bus consumer that
 ```tut:book
 import cats.syntax.apply._
 
-val vertx = Vertx.vertx
-
 val echoMessagesExuberantly = vertx.eventBus.
   consumer[String]("echo").
   toObservable(vertx).
@@ -92,7 +94,7 @@ val sendAMessage = vertx.eventBus.
 val demoTask =
   sendAMessage *> vertx.closeL
   
-Await.result(demoTask.runToFuture, 20.seconds)
+Await.result(demoTask.runToFuture(Scheduler.global), 20.seconds)
 ```
 
 ### Usage

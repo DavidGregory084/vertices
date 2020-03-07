@@ -19,7 +19,7 @@ import java.util.function.Function
 
 package object contract {
 
-  implicit class VertxOpenAPI3RouterFactoryCompanionOps(val target: OpenAPI3RouterFactory.type) {
+  object OpenAPI3RouterFactoryFunctions {
     /**
      *  Create a new OpenAPI3RouterFactory
      * @param vertx

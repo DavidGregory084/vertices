@@ -24,7 +24,7 @@ import java.lang.Void
 
 package object oauth2 {
 
-  implicit class VertxAzureADAuthCompanionOps(val target: AzureADAuth.type) {
+  object AzureADAuthFunctions {
     /**
      *  Create a OAuth2Auth provider for OpenID Connect Discovery. The discovery will use the default site in the
      *  configuration options and attempt to load the well known descriptor. If a site is provided (for example when
@@ -43,7 +43,7 @@ package object oauth2 {
   }
 
 
-  implicit class VertxKeycloakAuthCompanionOps(val target: KeycloakAuth.type) {
+  object KeycloakAuthFunctions {
     /**
      *  Create a OAuth2Auth provider for OpenID Connect Discovery. The discovery will use the default site in the
      *  configuration options and attempt to load the well known descriptor. If a site is provided (for example when
@@ -62,7 +62,7 @@ package object oauth2 {
   }
 
 
-  implicit class VertxOpenIDConnectAuthCompanionOps(val target: OpenIDConnectAuth.type) {
+  object OpenIDConnectAuthFunctions {
     /**
      *  Create a OAuth2Auth provider for OpenID Connect Discovery. The discovery will use the given site in the
      *  configuration options and attempt to load the well known descriptor.
@@ -97,7 +97,7 @@ package object oauth2 {
 
 
 
-  implicit class VertxGoogleAuthCompanionOps(val target: GoogleAuth.type) {
+  object GoogleAuthFunctions {
     /**
      *  Create a OAuth2Auth provider for OpenID Connect Discovery. The discovery will use the default site in the
      *  configuration options and attempt to load the well known descriptor. If a site is provided (for example when
@@ -118,7 +118,7 @@ package object oauth2 {
 
 
 
-  implicit class VertxSalesforceAuthCompanionOps(val target: SalesforceAuth.type) {
+  object SalesforceAuthFunctions {
     /**
      *  Create a OAuth2Auth provider for OpenID Connect Discovery. The discovery will use the default site in the
      *  configuration options and attempt to load the well known descriptor. If a site is provided (for example when

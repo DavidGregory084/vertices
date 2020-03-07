@@ -226,7 +226,7 @@ object Codegen {
 
     val objectTemplate = Option(
       s"""
-      |  implicit class Vertx${tpNme}CompanionOps(val target: ${tpNme}.type) {
+      |  object ${tpNme}Functions {
       |${staticMethods(tpNme, staticHandlers)}
       |  }
       |
