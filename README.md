@@ -123,7 +123,7 @@ They are listed below using the categories defined in the [Vert.x Documentation]
 SBT dependency coordinates:
 
 ```scala
-val verticesVersion = "0.1.0"
+val verticesVersion = "0.1.1"
 
 // Vert.x core
 "io.github.davidgregory084" %% "vertices-core" % verticesVersion
@@ -164,7 +164,7 @@ val verticesVersion = "0.1.0"
 Mill dependency coordinates:
 
 ```scala
-def verticesVersion = T { "0.1.0" }
+def verticesVersion = T { "0.1.1" }
 
 // Vert.x core
 ivy"io.github.davidgregory084::vertices-core:${verticesVersion()}"
