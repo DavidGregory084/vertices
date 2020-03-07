@@ -94,19 +94,19 @@ val echoMessagesExuberantly = vertx.eventBus.
   consumer[String]("echo").
   toObservable(vertx).
   foreachL(msg => msg.reply(msg.body.toUpperCase))
-// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$1711309601
+// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$206548026
 
 echoMessagesExuberantly.runToFuture
-// res3: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.eval.internal.TaskConnection$Impl$$anon$1@18e7b33e)
+// res3: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.eval.internal.TaskConnection$Impl$$anon$1@3b386ba7)
 
 val sendAMessage = vertx.eventBus.
   requestL[String]("echo", "hello").
   foreachL(msg => println(msg.body))
-// sendAMessage: monix.eval.Task[Unit] = Task.Map$1632477220
+// sendAMessage: monix.eval.Task[Unit] = Task.Map$1266065652
 
 val demoTask =
   sendAMessage *> vertx.closeL
-// demoTask: monix.eval.Task[Unit] = Task.FlatMap$1500277822
+// demoTask: monix.eval.Task[Unit] = Task.FlatMap$1411151959
 
 Await.result(demoTask.runToFuture(Scheduler.global), 20.seconds)
 // HELLO
@@ -114,7 +114,7 @@ Await.result(demoTask.runToFuture(Scheduler.global), 20.seconds)
 
 ### Usage
 
-The library is published for Scala 2.13 only.
+The library is published for Scala 2.12 and 2.13.
 
 The artifact names resemble those of the original Vert.x artifacts.
 

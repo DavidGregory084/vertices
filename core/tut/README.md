@@ -99,7 +99,7 @@ Await.result(demoTask.runToFuture(Scheduler.global), 20.seconds)
 
 ### Usage
 
-The library is published for Scala 2.13 only.
+The library is published for Scala 2.12 and 2.13.
 
 The artifact names resemble those of the original Vert.x artifacts.
 
