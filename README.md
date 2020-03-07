@@ -12,6 +12,8 @@ The basic idea of this library is to provide replacements for Vert.x methods whi
 
 The naming strategy follows that of [Monix](https://monix.io). The new methods which return `Task` are suffixed with the letter `L`, which indicates that underlying task is not executed right away (in other words that it is "lazy").
 
+Since it's not possible to decorate a Java class with new static methods, replacements for static methods reside within a companion object named after the original class with `Functions` appended to the end. For example, `io.vertx.core.Vertx.clusteredVertx` has a matching `vertices.core.VertxFunctions.clusteredVertxL`function.
+
 ### Example
 
 The Vert.x library provides a `SharedData` object in which we can store and retrieve named `AsyncMap` objects.
@@ -61,7 +63,6 @@ Await.result(resultPromise.future, 20.seconds)
 As you can see this is a perfect demonstration of *callback hell*.
 
 Using this library we can write the code above as follows:
-
 
 ```scala
 import monix.execution.Scheduler
