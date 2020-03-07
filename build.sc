@@ -12,6 +12,8 @@ import io.github.davidgregory084.TpolecatModule
 
 import ammonite.ops._
 
+val ScalaVersions = List("2.12.10", "2.13.1")
+
 trait PublishSettingsModule extends PublishModule {
   def publishVersion = "0.1.1-SNAPSHOT"
 
@@ -26,8 +28,6 @@ trait PublishSettingsModule extends PublishModule {
 }
 
 trait ScalaSettingsModule extends TpolecatModule {
-  def scalaVersion = "2.13.1"
-
   def vertxVersion = T { "3.8.5" }
 
   object test extends Tests {
@@ -40,6 +40,7 @@ trait ScalaSettingsModule extends TpolecatModule {
 }
 
 object codegen extends ScalaSettingsModule {
+  def scalaVersion = T { "2.13.1" }
   def vertxDocgenVersion = T { "0.9.2" }
   def nettyVersion = T { "4.1.42.Final" }
   def jacksonVersion = T { "2.9.9" }
@@ -62,7 +63,7 @@ object codegen extends ScalaSettingsModule {
   }
 }
 
-trait VertxCodegen extends PublishSettingsModule with ScalaSettingsModule {
+trait VertxCodegen extends PublishSettingsModule with ScalaSettingsModule with CrossScalaModule {
   def vertxModule: T[String]
 
   def artifactName = T { vertxModule().replaceFirst("vertx", "vertices") }
@@ -131,7 +132,8 @@ trait VertxCodegen extends PublishSettingsModule with ScalaSettingsModule {
     val processorOptions = Seq(
       "-proc:only",
       "-processor", "vertices.codegen.CodegenProcessor",
-      s"-Acodegen.module.name=${millModuleSegments.parts.last}",
+      // We want the package name to be the module name minus the version suffix
+      s"-Acodegen.module.name=${millModuleSegments.parts.init.last}",
       s"-Acodegen.output.dir=${generatedSourcesPath().toIO.toString}"
     )
 
@@ -161,7 +163,8 @@ trait VertxCodegen extends PublishSettingsModule with ScalaSettingsModule {
 // so that `eventbus_bridge_tcp` code is in the `vertices.eventbus.bridge.tcp` package.
 
 // Core ------------------------------------------------------
-object core extends VertxCodegen with TutModule {
+object core extends mill.Cross[CoreModule](ScalaVersions: _*)
+class CoreModule(val crossScalaVersion: String) extends VertxCodegen with TutModule {
   def tutVersion = "0.6.13"
   def tutTargetDirectory = millSourcePath / up
 
@@ -184,8 +187,9 @@ object core extends VertxCodegen with TutModule {
 }
 
 // Web -------------------------------------------------------
-object web extends VertxCodegen {
-  def moduleDeps = Seq(core, auth)
+object web extends mill.Cross[WebModule](ScalaVersions: _*)
+class WebModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion), auth(crossScalaVersion))
 
   def vertxModule = "vertx-web"
 
@@ -194,8 +198,9 @@ object web extends VertxCodegen {
   )
 }
 
-object web_client extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object web_client extends mill.Cross[WebClientModule](ScalaVersions: _*)
+class WebClientModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-web-client"
 
@@ -204,8 +209,9 @@ object web_client extends VertxCodegen {
   )
 }
 
-object web_api_contract extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object web_api_contract extends mill.Cross[WebApiContractModule](ScalaVersions: _*)
+class WebApiContractModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-web-api-contract"
 
@@ -215,8 +221,9 @@ object web_api_contract extends VertxCodegen {
 }
 
 // Data access ----------------------------------------------
-object mongo extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object mongo extends mill.Cross[MongoModule](ScalaVersions: _*)
+class MongoModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-mongo-client"
 
@@ -225,8 +232,9 @@ object mongo extends VertxCodegen {
   )
 }
 
-object redis_client extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object redis_client extends mill.Cross[RedisClientModule](ScalaVersions: _*)
+class RedisClientModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-redis-client"
 
@@ -235,8 +243,9 @@ object redis_client extends VertxCodegen {
   )
 }
 
-object cassandra extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object cassandra extends mill.Cross[CassandraModule](ScalaVersions: _*)
+class CassandraModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-cassandra-client"
 
@@ -245,8 +254,9 @@ object cassandra extends VertxCodegen {
   )
 }
 
-object sql extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object sql extends mill.Cross[SqlModule](ScalaVersions: _*)
+class SqlModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-sql-common"
 
@@ -255,8 +265,9 @@ object sql extends VertxCodegen {
   )
 }
 
-object jdbc extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object jdbc extends mill.Cross[JdbcModule](ScalaVersions: _*)
+class JdbcModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-jdbc-client"
 
@@ -266,11 +277,12 @@ object jdbc extends VertxCodegen {
 }
 
 // Microservices --------------------------------------------
-object servicediscovery extends VertxCodegen {
+object servicediscovery extends mill.Cross[ServiceDiscoveryModule](ScalaVersions: _*)
+class ServiceDiscoveryModule(val crossScalaVersion: String) extends VertxCodegen {
   def moduleDeps = Seq(
-    core,
-    web, web_client,
-    jdbc, mongo, redis_client
+    core(crossScalaVersion),
+    web(crossScalaVersion), web_client(crossScalaVersion),
+    jdbc(crossScalaVersion), mongo(crossScalaVersion), redis_client(crossScalaVersion)
   )
 
   def vertxModule = "vertx-service-discovery"
@@ -280,8 +292,9 @@ object servicediscovery extends VertxCodegen {
   )
 }
 
-object circuitbreaker extends VertxCodegen {
-  def moduleDeps = Seq(core, web)
+object circuitbreaker extends mill.Cross[CircuitBreakerModule](ScalaVersions: _*)
+class CircuitBreakerModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion), web(crossScalaVersion))
 
   def vertxModule = "vertx-circuit-breaker"
 
@@ -290,8 +303,9 @@ object circuitbreaker extends VertxCodegen {
   )
 }
 
-object config extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object config extends mill.Cross[ConfigModule](ScalaVersions: _*)
+class ConfigModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-config"
 
@@ -301,8 +315,9 @@ object config extends VertxCodegen {
 }
 
 // MQTT ------------------------------------------------------
-object mqtt extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object mqtt extends mill.Cross[MqttModule](ScalaVersions: _*)
+class MqttModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-mqtt"
 
@@ -312,8 +327,9 @@ object mqtt extends VertxCodegen {
 }
 
 // Authentication and Authorisation --------------------------
-object auth extends VertxCodegen {
-  def moduleDeps = Seq(core, auth_oauth2)
+object auth extends mill.Cross[AuthModule](ScalaVersions: _*)
+class AuthModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion), auth_oauth2(crossScalaVersion))
 
   def vertxModule = "vertx-auth-common"
 
@@ -324,8 +340,9 @@ object auth extends VertxCodegen {
   )
 }
 
-object auth_oauth2 extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object auth_oauth2 extends mill.Cross[AuthOAuth2Module](ScalaVersions: _*)
+class AuthOAuth2Module(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-auth-oauth2"
 
@@ -334,8 +351,9 @@ object auth_oauth2 extends VertxCodegen {
   )
 }
 
-object auth_mongo extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object auth_mongo extends mill.Cross[AuthMongoModule](ScalaVersions: _*)
+class AuthMongoModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-auth-mongo"
 
@@ -345,8 +363,9 @@ object auth_mongo extends VertxCodegen {
 }
 
 // Messaging -------------------------------------------------
-object stomp extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object stomp extends mill.Cross[StompModule](ScalaVersions: _*)
+class StompModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-stomp"
 
@@ -355,8 +374,9 @@ object stomp extends VertxCodegen {
   )
 }
 
-object rabbitmq extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object rabbitmq extends mill.Cross[RabbitMQModule](ScalaVersions: _*)
+class RabbitMQModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-rabbitmq-client"
 
@@ -365,8 +385,9 @@ object rabbitmq extends VertxCodegen {
   )
 }
 
-object amqpbridge extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object amqpbridge extends mill.Cross[AmqpBridgeModule](ScalaVersions: _*)
+class AmqpBridgeModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-amqp-bridge"
 
@@ -376,8 +397,9 @@ object amqpbridge extends VertxCodegen {
 }
 
 // Integration -----------------------------------------------
-object kafka_client extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object kafka_client extends mill.Cross[KafkaClientModule](ScalaVersions: _*)
+class KafkaClientModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-kafka-client"
 
@@ -386,8 +408,9 @@ object kafka_client extends VertxCodegen {
   )
 }
 
-object mail extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object mail extends mill.Cross[MailModule](ScalaVersions: _*)
+class MailModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-mail-client"
 
@@ -396,8 +419,9 @@ object mail extends VertxCodegen {
   )
 }
 
-object consul extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object consul extends mill.Cross[ConsulModule](ScalaVersions: _*)
+class ConsulModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-consul-client"
 
@@ -407,8 +431,9 @@ object consul extends VertxCodegen {
 }
 
 // Event Bus Bridge ------------------------------------------
-object eventbus_bridge_tcp extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object eventbus_bridge_tcp extends mill.Cross[EventbusBridgeTcpModule](ScalaVersions: _*)
+class EventbusBridgeTcpModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-tcp-eventbus-bridge"
 
@@ -418,8 +443,9 @@ object eventbus_bridge_tcp extends VertxCodegen {
 }
 
 // Devops ----------------------------------------------------
-object healthchecks extends VertxCodegen {
-  def moduleDeps = Seq(core)
+object healthchecks extends mill.Cross[HealthChecksModule](ScalaVersions: _*)
+class HealthChecksModule(val crossScalaVersion: String) extends VertxCodegen {
+  def moduleDeps = Seq(core(crossScalaVersion))
 
   def vertxModule = "vertx-health-check"
 

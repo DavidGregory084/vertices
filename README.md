@@ -6,17 +6,15 @@
 
 ### Overview
 
-Vertices is a Scala library that provides extension methods for [Eclipse Vert.x](http://vertx.io/) which allow the Vert.x framework to be used with the Scala library [Monix](https://monix.io) to write asynchronous programs in a functional style.
+Vertices is a Scala library that provides extension methods for the [Eclipse Vert.x](http://vertx.io/) APIs.
 
 The basic idea of this library is to provide replacements for Vert.x methods which accept callbacks. This makes it easer to use the diverse functionality provided by the Vert.x libraries while writing idiomatic Scala code.
 
-The naming strategy follows that of [Monix](https://monix.io). The new methods which return `Task` are suffixed with the letter `L`, which indicates that underlying task is not executed right away (in other words that it is "lazy").
-
-Since it's not possible to decorate a Java class with new static methods, replacements for static methods reside within a companion object named after the original class with `Functions` appended to the end. For example, `io.vertx.core.Vertx.clusteredVertx` has a matching `vertices.core.VertxFunctions.clusteredVertxL` function.
+The new methods make use of the `Task` type from the excellent [Monix](https://monix.io) library.
 
 ### Example
 
-The Vert.x library provides a `SharedData` object in which we can store and retrieve named `AsyncMap` objects.
+The Vert.x library provides a `SharedData` object which we can use to store and retrieve named `AsyncMap` objects.
 
 Using the original Vert.x APIs we would write code to access this data like so:
 
@@ -60,7 +58,7 @@ Await.result(resultPromise.future, 20.seconds)
 // res1: String = value
 ```
 
-As you can see this is a perfect demonstration of *callback hell*.
+As you can see this is a perfect demonstration of "callback hell".
 
 Using this library we can write the code above as follows:
 
@@ -203,6 +201,74 @@ ivy"io.github.davidgregory084::vertices-tcp-eventbus-bridge:${verticesVersion()}
 // Devops
 ivy"io.github.davidgregory084::vertices-health-check:${verticesVersion()}"
 ```
+### Cheat Sheet
+
+The naming strategy for extension methods follows that of [Monix](https://monix.io): the new methods which return `Task` are suffixed with the letter `L` since the underlying task is not executed right away (in other words that it is "lazy").
+
+```scala
+// Instead of the io.vertx.core.file.AsyncFile method
+def write(data: Buffer, handler: Handler[AsyncResult[Void]]): AsyncFile
+// We can use this extension method from vertices.core
+def writeL(data: Buffer): Task[Unit]
+
+// Instead of the io.vertx.core.dns.DnsClient method
+def resolveMX(name: String, handler: Handler[AsyncResult[List[MxRecord]]]): DnsClient
+// We can use this extension method from vertices.core
+def resolveMXL(name: String): Task[List[MxRecord]]
+```
+
+Since it's not possible to decorate a Java class with new static methods, replacements for static methods reside within a companion object named after the original class with `Functions` appended to the end. For example, `io.vertx.core.Vertx.clusteredVertx` has a matching `vertices.core.VertxFunctions.clusteredVertxL` function.
+
+```scala
+// Instead of the io.vertx.ext.auth.oauth2.providers.GoogleAuth static method
+def create(vertx: Vertx, url: String, handler: Handler[AsyncResult[OAuth2Auth]]): Unit
+// We can use this function from vertices.auth.GoogleAuthFunctions
+def createL(vertx: Vertx, url: String): Task[OAuth2Auth]
+```
+
+### Import Guide
+
+Extension methods are made available by importing from the package corresponding to each module. The package names are selected to resemble those used by the original APIs.
+
+```scala
+// Vert.x core
+import vertices.core._
+// Vert.x web modules
+import vertices.web._
+import vertices.web.client._
+import vertices.web.api.contract._
+// Vert.x data access
+import vertices.mongo._
+import vertices.redis.client._
+import vertices.cassandra._
+import vertices.sql._
+import vertices.jdbc._
+// Vert.x microservices
+import vertices.servicediscovery._
+import vertices.circuitbreaker._
+import vertices.config._
+// Vert.x MQTT
+import vertices.mqtt._
+// Vert.x authentication and authorisation
+import vertices.auth._
+import vertices.auth.oauth2._
+import vertices.auth.mongo._
+// Vert.x messaging
+import vertices.stomp._
+import vertices.rabbitmq._
+import vertices.amqpbridge._
+// Vert.x integration
+import vertices.kafka.client._
+import vertices.mail._
+import vertices.consul._
+// Vert.x event bus bridge
+import vertices.eventbus.bridge.tcp._
+// Vert.x devops
+import vertices.healthchecks._
+```
+
+The root package `vertices` also provides some useful extension methods and type class instances for Vert.x types.
+
 ### FAQ
 
 Q. Why is `<some module>` missing?
