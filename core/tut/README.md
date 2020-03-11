@@ -8,7 +8,7 @@
 
 Vertices is a Scala library that provides extension methods for the [Eclipse Vert.x](http://vertx.io/) APIs.
 
-The basic idea of this library is to provide replacements for Vert.x methods which accept callbacks. This makes it easer to use the diverse functionality provided by the Vert.x libraries while writing idiomatic Scala code.
+The basic idea of this library is to provide replacements for Vert.x methods which accept callbacks. This makes it easier to use the diverse functionality provided by the Vert.x libraries while writing idiomatic Scala code.
 
 The new methods make use of the [Task](https://monix.io/api/3.1/monix/eval/Task.html) type from the excellent [Monix](https://monix.io) library.
 
@@ -80,10 +80,12 @@ The example below uses the Vert.x Event Bus to define an event bus consumer that
 ```tut:book
 import cats.syntax.apply._
 
-val echoMessagesExuberantly = vertx.eventBus.
-  consumer[String]("echo").
-  toObservable(vertx).
-  foreachL(msg => msg.reply(msg.body.toUpperCase))
+val messageStream = vertx.eventBus.consumer[String]("echo")
+
+val echoMessagesExuberantly = for {
+  messageObservable <- messageStream.toObservable(vertx)
+  _                 <- messageObservable.foreachL(msg => msg.reply(msg.body.toUpperCase))
+} yield ()
   
 echoMessagesExuberantly.runToFuture
 

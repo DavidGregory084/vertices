@@ -90,23 +90,26 @@ The example below uses the Vert.x Event Bus to define an event bus consumer that
 import cats.syntax.apply._
 // import cats.syntax.apply._
 
-val echoMessagesExuberantly = vertx.eventBus.
-  consumer[String]("echo").
-  toObservable(vertx).
-  foreachL(msg => msg.reply(msg.body.toUpperCase))
-// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.Async$206548026
+val messageStream = vertx.eventBus.consumer[String]("echo")
+// messageStream: io.vertx.core.eventbus.MessageConsumer[String] = io.vertx.core.eventbus.impl.HandlerRegistration@32107bba
+
+val echoMessagesExuberantly = for {
+  messageObservable <- messageStream.toObservable(vertx)
+  _                 <- messageObservable.foreachL(msg => msg.reply(msg.body.toUpperCase))
+} yield ()
+// echoMessagesExuberantly: monix.eval.Task[Unit] = Task.FlatMap$936177086
 
 echoMessagesExuberantly.runToFuture
-// res3: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.eval.internal.TaskConnection$Impl$$anon$1@3b386ba7)
+// res3: monix.execution.CancelableFuture[Unit] = Async(Future(<not completed>),monix.eval.internal.TaskConnection$Impl$$anon$1@2b009051)
 
 val sendAMessage = vertx.eventBus.
   requestL[String]("echo", "hello").
   foreachL(msg => println(msg.body))
-// sendAMessage: monix.eval.Task[Unit] = Task.Map$1266065652
+// sendAMessage: monix.eval.Task[Unit] = Task.Map$368375378
 
 val demoTask =
   sendAMessage *> vertx.closeL
-// demoTask: monix.eval.Task[Unit] = Task.FlatMap$1411151959
+// demoTask: monix.eval.Task[Unit] = Task.FlatMap$543433178
 
 Await.result(demoTask.runToFuture(Scheduler.global), 20.seconds)
 // HELLO
