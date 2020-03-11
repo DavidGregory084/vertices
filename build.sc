@@ -15,7 +15,7 @@ import ammonite.ops._
 val ScalaVersions = List("2.12.10", "2.13.1")
 
 trait PublishSettingsModule extends PublishModule {
-  def publishVersion = "0.1.2"
+  def publishVersion = "0.1.3-SNAPSHOT"
 
   def pomSettings = PomSettings(
     description = artifactName(),
